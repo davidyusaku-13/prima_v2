@@ -124,21 +124,18 @@
       </div>
     </div>
     <div class="flex items-center gap-3 px-4 py-3 rounded-xl bg-slate-50">
-      <div class="w-10 h-10 bg-teal-600 rounded-full flex items-center justify-center text-white font-semibold">
+      <div class="w-10 h-10 bg-teal-600 rounded-full flex items-center justify-center text-white font-semibold shrink-0">
         {user?.fullName?.charAt(0)?.toUpperCase() || user?.username?.charAt(0)?.toUpperCase() || 'U'}
       </div>
       <div class="flex-1 min-w-0">
         <p class="text-sm font-medium text-slate-900 truncate">{user?.fullName || user?.username}</p>
-        <div class="flex items-center gap-2">
-          <p class="text-xs text-slate-500 truncate">@{user?.username}</p>
-          {#if user?.role}
-            <span class="px-1.5 py-0.5 text-xs font-medium rounded {user?.role === 'superadmin' ? 'bg-purple-100 text-purple-700' : user?.role === 'admin' ? 'bg-blue-100 text-blue-700' : 'bg-slate-200 text-slate-600'}">
-              {$t(`users.${user.role}`)}
-            </span>
-          {/if}
-        </div>
+        {#if user?.role}
+          <span class="inline-block mt-1 px-1.5 py-0.5 text-xs font-medium rounded {user?.role === 'superadmin' ? 'bg-purple-100 text-purple-700' : user?.role === 'admin' ? 'bg-blue-100 text-blue-700' : 'bg-slate-200 text-slate-600'}">
+            {$t(`users.${user.role}`)}
+          </span>
+        {/if}
       </div>
-      <button onclick={onLogout} class="p-2 text-slate-400 hover:text-red-600 transition-colors" title={$t('auth.logout')}>
+      <button onclick={onLogout} class="p-2 text-slate-400 hover:text-red-600 transition-colors shrink-0" title={$t('auth.logout')}>
         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
         </svg>
