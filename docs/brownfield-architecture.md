@@ -16,6 +16,7 @@ Comprehensive documentation of the CareKeeper healthcare volunteer management an
 | 2025-12-27 | 2.0     | Updated to CareKeeper with RBAC          | Claude  |
 | 2025-12-27 | 3.0     | Added CMS features (Berita, Video Edukasi)| Claude  |
 | 2025-12-28 | 3.1     | Documentation review and CLAUDE.md sync  | Claude  |
+| 2025-12-28 | 3.2     | CMS dashboard redesign, draft visibility, Svelte 5 fixes | Claude  |
 
 ---
 
@@ -76,8 +77,7 @@ prima_v2/
 ├── docs/                     # Documentation
 │   ├── brownfield-architecture.md
 │   ├── project-documentation.md
-│   ├── brainstorming-session-results.md
-│   └── CLAUDE.md             # Project guidance (partially outdated)
+│   └── brainstorming-session-results.md
 └── GOWA-README.md            # WhatsApp integration docs
 ```
 
@@ -191,6 +191,7 @@ frontend/src/
     │   ├── ImageUploader.svelte # Drag & drop image upload
     │   ├── ArticleCard.svelte   # Article preview card
     │   ├── VideoCard.svelte     # Video preview card
+    │   ├── ContentListItem.svelte # CMS list view row item
     │   ├── DashboardStats.svelte # CMS stats display
     │   └── ActivityLog.svelte   # Recent activity feed
     ├── views/               # Page views
@@ -435,7 +436,7 @@ var (
 | GET | `/api/categories/:type` | Public | Get categories by type (article/video) |
 | POST | `/api/categories` | Admin+ | Create category |
 | **Articles** |||
-| GET | `/api/articles` | Public | List published articles |
+| GET | `/api/articles` | Public | List published articles (use `?all=true` for drafts) |
 | GET | `/api/articles/:slug` | Public | Get article by slug |
 | POST | `/api/articles` | Admin+ | Create article |
 | PUT | `/api/articles/:id` | Admin+ | Update article |
@@ -535,11 +536,11 @@ saveReminder(token, patientId, reminder, editingId), toggleReminder(token, patie
 fetchUsers(token), updateUserRole(token, userId, role), deleteUser(token, userId)
 
 // CMS - Articles
-fetchArticles(token, category), fetchArticle(token, id), createArticle(token, article),
+fetchArticles(token, category, all), fetchArticle(token, id), createArticle(token, article),
 updateArticle(token, id, article), deleteArticle(token, id)
 
 // CMS - Videos
-fetchVideos(token, category), createVideo(token, video), deleteVideo(token, id)
+fetchVideos(token, category), createVideo(token, video), updateVideo(token, id, video), deleteVideo(token, id)
 
 // CMS - Categories
 fetchCategories(token)
@@ -580,9 +581,13 @@ fetchDashboardStats(token), uploadImage(token, file)
 - Click to play in modal
 
 **CMSDashboardView.svelte** - Admin dashboard:
-- Stats overview (articles, videos, views)
-- Activity log placeholder
-- Quick action buttons
+- Stats overview (articles, videos, views, drafts)
+- Content list with list/grid view toggle
+- Search, filter (all/articles/videos/drafts), and sort functionality
+- Bulk selection with select-all checkbox
+- Bulk delete action for selected items
+- Pagination for large content lists
+- Quick action buttons (add article, add video)
 
 **ArticleEditorView.svelte** - Article management:
 - Title, excerpt, content, category
@@ -632,11 +637,13 @@ fetchDashboardStats(token), uploadImage(token, file)
 - **CORS Strict**: Backend only accepts `http://localhost:5173`
 - **Indonesian Phone Format**: Phone numbers must be Indonesian format for WhatsApp
 - **Volunteer Isolation**: Volunteers can only see their own patients
-- **No Pagination**: Large lists will impact performance
+- **No Pagination**: Large lists will impact performance (except CMS dashboard)
 - **No Soft Delete**: Deletion is permanent
 - **File Persistence**: Async writes could lead to data loss on crash
 - **Activity Log Endpoint**: `fetchActivityLog()` returns empty - backend doesn't have this endpoint yet
 - **Slug Uniqueness**: Articles get numbered suffixes if slug collides
+- **Svelte 5 Set Reactivity**: Must create new `Set()` instances instead of mutating in place (`.add()`, `.delete()`, `.clear()` don't trigger reactivity)
+- **Draft Articles**: Use `?all=true` query param on `/api/articles` to include drafts (CMS dashboard uses this)
 
 ---
 
@@ -826,6 +833,9 @@ cd frontend && bun run preview
 | Can't access CMS | Must be admin or superadmin role |
 | Articles not showing | Check status is "published" not "draft" |
 | Video fetch fails | Check YouTube URL format, noembed API |
+| Drafts not showing in CMS | Ensure `?all=true` param is passed to articles API |
+| Bulk selection not working | Svelte 5 requires new Set() instances for reactivity |
+| CMS columns misaligned | Check header and row widths match in CMSDashboardView |
 
 ---
 
