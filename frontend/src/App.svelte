@@ -9,8 +9,8 @@
   const API_URL = 'http://localhost:8080/api';
 
   onMount(async () => {
-    await fetchHello();
-    await fetchItems();
+    fetchHello();
+    fetchItems();
   });
 
   async function fetchHello() {
@@ -27,12 +27,31 @@
     loading = true;
     try {
       const response = await fetch(`${API_URL}/items`);
+      if (!response.ok) throw new Error('Failed to fetch');
       const data = await response.json();
-      items = data.items;
+      items = data.items || [];
     } catch (error) {
-      console.error('Error:', error);
+      console.error('Error fetching items:', error);
     } finally {
       loading = false;
+    }
+  }
+
+  async function deleteItem(index) {
+    try {
+      const response = await fetch(`${API_URL}/items`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ index }),
+      });
+
+      if (response.ok) {
+        await fetchItems();
+      }
+    } catch (error) {
+      console.error('Error:', error);
     }
   }
 
@@ -71,17 +90,19 @@
     <div class="bg-white rounded-xl shadow-md p-6">
       <h3 class="text-xl font-semibold text-gray-800 mb-4">Items</h3>
 
-      {#if loading}
-        <div class="flex justify-center py-8">
-          <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-        </div>
-      {:else if items.length === 0}
+      {#if items.length === 0}
         <p class="text-gray-500 text-center py-4">No items yet</p>
       {:else}
         <ul class="space-y-2 mb-4">
-          {#each items as item}
-            <li class="bg-gray-100 rounded-lg px-4 py-3 text-gray-700">
-              {item}
+          {#each items as item, index}
+            <li class="bg-gray-100 rounded-lg px-4 py-3 text-gray-700 flex justify-between items-center">
+              <span>{item.text}</span>
+              <button
+                onclick={() => deleteItem(index)}
+                class="text-red-500 hover:text-red-700 font-medium px-3 py-1 rounded hover:bg-red-50 transition-colors"
+              >
+                Delete
+              </button>
             </li>
           {/each}
         </ul>
