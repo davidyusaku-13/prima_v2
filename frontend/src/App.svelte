@@ -47,7 +47,7 @@
         },
         body: JSON.stringify({ text: newItem }),
       });
-      
+
       if (response.ok) {
         await fetchItems();
         newItem = '';
@@ -58,86 +58,50 @@
   }
 </script>
 
-<main>
-  <h1>Svelte + Go App</h1>
-  
-  <div class="card">
-    <h2>{message}</h2>
-  </div>
+<main class="min-h-screen bg-gray-50 py-12 px-4">
+  <div class="max-w-2xl mx-auto">
+    <h1 class="text-4xl font-bold text-center text-gray-900 mb-8">
+      Svelte + Go App
+    </h1>
 
-  <div class="card">
-    <h3>Items</h3>
-    {#if loading}
-      <p>Loading...</p>
-    {:else}
-      <ul>
-        {#each items as item}
-          <li>{item}</li>
-        {/each}
-      </ul>
-    {/if}
+    <div class="bg-white rounded-xl shadow-md p-6 mb-6">
+      <h2 class="text-2xl font-semibold text-gray-800 mb-2">{message}</h2>
+    </div>
 
-    <div class="input-group">
-      <input 
-        type="text" 
-        bind:value={newItem} 
-        placeholder="Enter new item"
-        on:keypress={(e) => e.key === 'Enter' && addItem()}
-      />
-      <button on:click={addItem}>Add Item</button>
+    <div class="bg-white rounded-xl shadow-md p-6">
+      <h3 class="text-xl font-semibold text-gray-800 mb-4">Items</h3>
+
+      {#if loading}
+        <div class="flex justify-center py-8">
+          <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        </div>
+      {:else if items.length === 0}
+        <p class="text-gray-500 text-center py-4">No items yet</p>
+      {:else}
+        <ul class="space-y-2 mb-4">
+          {#each items as item}
+            <li class="bg-gray-100 rounded-lg px-4 py-3 text-gray-700">
+              {item}
+            </li>
+          {/each}
+        </ul>
+      {/if}
+
+      <div class="flex gap-3 mt-4">
+        <input
+          type="text"
+          bind:value={newItem}
+          placeholder="Enter new item"
+          class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+          onkeypress={(e) => e.key === 'Enter' && addItem()}
+        />
+        <button
+          onclick={addItem}
+          class="px-6 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors"
+        >
+          Add Item
+        </button>
+      </div>
     </div>
   </div>
 </main>
-
-<style>
-  main {
-    max-width: 800px;
-    margin: 0 auto;
-    padding: 2rem;
-  }
-
-  .card {
-    padding: 1.5rem;
-    margin: 1rem 0;
-    border-radius: 8px;
-    background: #f5f5f5;
-  }
-
-  .input-group {
-    display: flex;
-    gap: 0.5rem;
-    margin-top: 1rem;
-  }
-
-  input {
-    flex: 1;
-    padding: 0.5rem;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-  }
-
-  button {
-    padding: 0.5rem 1rem;
-    background: #4CAF50;
-    color: white;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-  }
-
-  button:hover {
-    background: #45a049;
-  }
-
-  ul {
-    list-style: none;
-    padding: 0;
-  }
-
-  li {
-    padding: 0.5rem;
-    margin: 0.5rem 0;
-    background: white;
-    border-radius: 4px;
-  }
-</style>
