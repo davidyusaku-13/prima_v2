@@ -93,6 +93,33 @@
     }
   };
 
+  // Confirm modal state
+  let showConfirmModal = false;
+  let confirmMessage = '';
+  let confirmCallback = null;
+  let confirmContext = null;
+
+  function showConfirm(message, callback, context = null) {
+    confirmMessage = message;
+    confirmCallback = callback;
+    confirmContext = context;
+    showConfirmModal = true;
+  }
+
+  function handleConfirm() {
+    if (confirmCallback) {
+      confirmCallback(confirmContext);
+    }
+    closeConfirmModal();
+  }
+
+  function closeConfirmModal() {
+    showConfirmModal = false;
+    confirmMessage = '';
+    confirmCallback = null;
+    confirmContext = null;
+  }
+
   // Filters
   let searchQuery = '';
 
@@ -299,14 +326,14 @@
   }
 
   async function deletePatient(id) {
-    if (!confirm('Are you sure you want to delete this patient?')) return;
-
-    try {
-      await fetch(`${API_URL}/patients/${id}`, { method: 'DELETE', headers: getHeaders() });
-      await loadPatients();
-    } catch (e) {
-      console.error('Failed to delete patient:', e);
-    }
+    showConfirm('Are you sure you want to delete this patient?', async () => {
+      try {
+        await fetch(`${API_URL}/patients/${id}`, { method: 'DELETE', headers: getHeaders() });
+        await loadPatients();
+      } catch (e) {
+        console.error('Failed to delete patient:', e);
+      }
+    });
   }
 
   async function saveReminder() {
@@ -395,16 +422,17 @@
   }
 
   async function deleteUser(userId) {
-    if (!confirm('Are you sure you want to delete this user?')) return;
-    try {
-      await fetch(`${API_URL}/users/${userId}`, {
-        method: 'DELETE',
-        headers: getHeaders()
-      });
-      await loadUsers();
-    } catch (e) {
-      console.error('Failed to delete user:', e);
-    }
+    showConfirm('Are you sure you want to delete this user?', async () => {
+      try {
+        await fetch(`${API_URL}/users/${userId}`, {
+          method: 'DELETE',
+          headers: getHeaders()
+        });
+        await loadUsers();
+      } catch (e) {
+        console.error('Failed to delete user:', e);
+      }
+    });
   }
 
   function openUserModal(userToEdit = null) {
@@ -1562,6 +1590,44 @@
             </div>
           </form>
         {/if}
+      </div>
+    </div>
+  {/if}
+
+  <!-- Confirm Modal -->
+  {#if showConfirmModal}
+    <div class="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div
+        class="absolute inset-0 bg-slate-900/50 backdrop-blur-sm"
+        onclick={closeConfirmModal}
+        onkeydown={(e) => e.key === 'Escape' && closeConfirmModal()}
+        role="button"
+        tabindex="0"
+        aria-label="Close modal"
+      ></div>
+      <div class="relative bg-white rounded-2xl shadow-xl w-full max-w-sm p-6" onclick={(e) => e.stopPropagation()} onkeydown={(e) => e.stopPropagation()} role="dialog" aria-modal="true" tabindex="-1">
+        <div class="flex items-center gap-4 mb-6">
+          <div class="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center flex-shrink-0">
+            <svg class="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+          </div>
+          <p class="text-slate-700">{confirmMessage}</p>
+        </div>
+        <div class="flex gap-3">
+          <button
+            onclick={closeConfirmModal}
+            class="flex-1 px-4 py-2.5 border border-slate-200 text-slate-700 font-medium rounded-xl hover:bg-slate-50 transition-colors duration-200"
+          >
+            Cancel
+          </button>
+          <button
+            onclick={handleConfirm}
+            class="flex-1 px-4 py-2.5 bg-red-600 text-white font-medium rounded-xl hover:bg-red-700 transition-colors duration-200"
+          >
+            Delete
+          </button>
+        </div>
       </div>
     </div>
   {/if}
