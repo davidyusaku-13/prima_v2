@@ -1,7 +1,13 @@
 <script>
   import { onMount } from 'svelte';
+  import { locale, t } from 'svelte-i18n';
 
   const API_URL = 'http://localhost:8080/api';
+
+  function setLocale(newLocale) {
+    locale.set(newLocale);
+    localStorage.setItem('locale', newLocale);
+  }
 
   // Auth state
   let token = localStorage.getItem('token') || null;
@@ -521,7 +527,8 @@
 
   function formatDate(dateStr) {
     if (!dateStr) return '';
-    return new Date(dateStr).toLocaleDateString('en-US', {
+    const lang = $locale || 'en';
+    return new Date(dateStr).toLocaleDateString(lang, {
       month: 'short',
       day: 'numeric',
       hour: '2-digit',
@@ -599,8 +606,26 @@
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
           </svg>
         </div>
-        <h1 class="text-2xl font-bold text-slate-900">CareKeeper</h1>
-        <p class="text-slate-500 mt-1">Healthcare Volunteer Dashboard</p>
+        <h1 class="text-2xl font-bold text-slate-900">{$t('app.name')}</h1>
+        <p class="text-slate-500 mt-1">{$t('app.tagline')}</p>
+      </div>
+
+      <!-- Language Switcher on Login Screen -->
+      <div class="mb-6">
+        <div class="flex items-center gap-1 bg-slate-100 rounded-lg p-1 max-w-xs mx-auto">
+          <button
+            onclick={() => setLocale('en')}
+            class="flex-1 py-1.5 text-xs font-medium rounded-md transition-colors duration-200 {$locale === 'en' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900'}"
+          >
+            English
+          </button>
+          <button
+            onclick={() => setLocale('id')}
+            class="flex-1 py-1.5 text-xs font-medium rounded-md transition-colors duration-200 {$locale === 'id' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900'}"
+          >
+            Bahasa Indonesia
+          </button>
+        </div>
       </div>
 
       <!-- Auth Card -->
@@ -610,13 +635,13 @@
             onclick={() => authMode = 'login'}
             class="flex-1 py-2.5 rounded-xl font-medium transition-colors duration-200 {authMode === 'login' ? 'bg-teal-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}"
           >
-            Login
+            {$t('auth.login')}
           </button>
           <button
             onclick={() => authMode = 'register'}
             class="flex-1 py-2.5 rounded-xl font-medium transition-colors duration-200 {authMode === 'register' ? 'bg-teal-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}"
           >
-            Register
+            {$t('auth.register')}
           </button>
         </div>
 
@@ -629,25 +654,25 @@
         {#if authMode === 'login'}
           <form onsubmit={(e) => { e.preventDefault(); login(); }} class="space-y-4">
             <div>
-              <label for="username" class="block text-sm font-medium text-slate-700 mb-1">Username</label>
+              <label for="username" class="block text-sm font-medium text-slate-700 mb-1">{$t('auth.username')}</label>
               <input
                 id="username"
                 type="text"
                 bind:value={loginForm.username}
                 required
                 class="w-full px-4 py-2.5 bg-slate-100 border-0 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500 focus:bg-white transition-all duration-200"
-                placeholder="Enter your username"
+                placeholder={$t('auth.enterUsername')}
               />
             </div>
             <div>
-              <label for="password" class="block text-sm font-medium text-slate-700 mb-1">Password</label>
+              <label for="password" class="block text-sm font-medium text-slate-700 mb-1">{$t('auth.password')}</label>
               <input
                 id="password"
                 type="password"
                 bind:value={loginForm.password}
                 required
                 class="w-full px-4 py-2.5 bg-slate-100 border-0 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500 focus:bg-white transition-all duration-200"
-                placeholder="Enter your password"
+                placeholder={$t('auth.enterPassword')}
               />
             </div>
             <button
@@ -657,26 +682,26 @@
             >
               {#if authLoading}
                 <div class="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                Logging in...
+                {$t('auth.loggingIn')}
               {:else}
-                Login
+                {$t('auth.loginButton')}
               {/if}
             </button>
           </form>
         {:else}
           <form onsubmit={(e) => { e.preventDefault(); register(); }} class="space-y-4">
             <div>
-              <label for="fullName" class="block text-sm font-medium text-slate-700 mb-1">Full Name</label>
+              <label for="fullName" class="block text-sm font-medium text-slate-700 mb-1">{$t('auth.fullName')}</label>
               <input
                 id="fullName"
                 type="text"
                 bind:value={registerForm.fullName}
                 class="w-full px-4 py-2.5 bg-slate-100 border-0 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500 focus:bg-white transition-all duration-200"
-                placeholder="Your full name"
+                placeholder={$t('auth.yourFullName')}
               />
             </div>
             <div>
-              <label for="regUsername" class="block text-sm font-medium text-slate-700 mb-1">Username *</label>
+              <label for="regUsername" class="block text-sm font-medium text-slate-700 mb-1">{$t('auth.username')} *</label>
               <input
                 id="regUsername"
                 type="text"
@@ -684,14 +709,14 @@
                 required
                 minlength="3"
                 class="w-full px-4 py-2.5 bg-slate-100 border-0 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500 focus:bg-white transition-all duration-200 {registerForm.username.length > 0 && !usernameValid ? 'ring-2 ring-red-500' : ''}"
-                placeholder="Choose a username"
+                placeholder={$t('auth.chooseUsername')}
               />
               {#if registerForm.username.length > 0 && !usernameValid}
-                <p class="text-xs text-red-500 mt-1">Username must be at least 3 characters</p>
+                <p class="text-xs text-red-500 mt-1">{$t('validation.usernameMin')}</p>
               {/if}
             </div>
             <div>
-              <label for="regPassword" class="block text-sm font-medium text-slate-700 mb-1">Password *</label>
+              <label for="regPassword" class="block text-sm font-medium text-slate-700 mb-1">{$t('auth.password')} *</label>
               <input
                 id="regPassword"
                 type="password"
@@ -699,7 +724,7 @@
                 required
                 minlength="6"
                 class="w-full px-4 py-2.5 bg-slate-100 border-0 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500 focus:bg-white transition-all duration-200"
-                placeholder="Choose a password"
+                placeholder={$t('auth.choosePassword')}
               />
               <!-- Password strength indicator -->
               {#if registerForm.password.length > 0}
@@ -711,33 +736,33 @@
                   </div>
                   <p class="text-xs text-slate-500">
                     {#if passwordStrength <= 1}
-                      Weak
+                      {$t('password.strength.weak')}
                     {:else if passwordStrength <= 2}
-                      Fair
+                      {$t('password.strength.fair')}
                     {:else if passwordStrength <= 3}
-                      Good
+                      {$t('password.strength.good')}
                     {:else}
-                      Strong
+                      {$t('password.strength.strong')}
                     {/if}
                     {#if registerForm.password.length < 6}
-                      - Min 6 characters
+                      - {$t('auth.minChars', { values: { n: 6 } })}
                     {/if}
                   </p>
                 </div>
               {/if}
             </div>
             <div>
-              <label for="confirmPassword" class="block text-sm font-medium text-slate-700 mb-1">Confirm Password *</label>
+              <label for="confirmPassword" class="block text-sm font-medium text-slate-700 mb-1">{$t('auth.confirmPassword')} *</label>
               <input
                 id="confirmPassword"
                 type="password"
                 bind:value={registerForm.confirmPassword}
                 required
                 class="w-full px-4 py-2.5 bg-slate-100 border-0 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500 focus:bg-white transition-all duration-200 {registerForm.confirmPassword.length > 0 && !passwordMatch ? 'ring-2 ring-red-500' : ''}"
-                placeholder="Confirm your password"
+                placeholder={$t('auth.confirmYourPassword')}
               />
               {#if registerForm.confirmPassword.length > 0 && !passwordMatch}
-                <p class="text-xs text-red-500 mt-1">Passwords do not match</p>
+                <p class="text-xs text-red-500 mt-1">{$t('auth.passwordsDoNotMatch')}</p>
               {/if}
             </div>
             <button
@@ -747,9 +772,9 @@
             >
               {#if authLoading}
                 <div class="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                Creating account...
+                {$t('auth.creatingAccount')}
               {:else}
-                Create Account
+                {$t('auth.registerButton')}
               {/if}
             </button>
           </form>
@@ -771,8 +796,8 @@
           </svg>
         </div>
         <div>
-          <h1 class="font-bold text-slate-900">CareKeeper</h1>
-          <p class="text-xs text-slate-500">Volunteer Dashboard</p>
+          <h1 class="font-bold text-slate-900">{$t('app.name')}</h1>
+          <p class="text-xs text-slate-500">{$t('navigation.volunteerDashboard')}</p>
         </div>
       </div>
 
@@ -785,7 +810,7 @@
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
           </svg>
-          Dashboard
+          {$t('navigation.dashboard')}
         </button>
         <button
           onclick={() => navigateTo('patients')}
@@ -794,7 +819,7 @@
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
           </svg>
-          Patients
+          {$t('navigation.patients')}
           <span class="ml-auto bg-slate-100 text-slate-600 text-xs font-medium px-2 py-0.5 rounded-full">{stats.totalPatients}</span>
         </button>
         {#if user?.role === 'superadmin'}
@@ -805,7 +830,7 @@
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
             </svg>
-            Users
+            {$t('navigation.users')}
             <span class="ml-auto bg-purple-100 text-purple-700 text-xs font-medium px-2 py-0.5 rounded-full">{users.length}</span>
           </button>
         {/if}
@@ -813,6 +838,23 @@
 
       <!-- User section -->
       <div class="p-4 border-t border-slate-100">
+        <!-- Language Switcher -->
+        <div class="mb-3 px-4 py-2">
+          <div class="flex items-center gap-1 bg-slate-100 rounded-lg p-1">
+            <button
+              onclick={() => setLocale('en')}
+              class="flex-1 py-1.5 text-xs font-medium rounded-md transition-colors duration-200 {$locale === 'en' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900'}"
+            >
+              EN
+            </button>
+            <button
+              onclick={() => setLocale('id')}
+              class="flex-1 py-1.5 text-xs font-medium rounded-md transition-colors duration-200 {$locale === 'id' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900'}"
+            >
+              ID
+            </button>
+          </div>
+        </div>
         <div class="flex items-center gap-3 px-4 py-3 rounded-xl bg-slate-50">
           <div class="w-10 h-10 bg-teal-600 rounded-full flex items-center justify-center text-white font-semibold">
             {user?.fullName?.charAt(0)?.toUpperCase() || user?.username?.charAt(0)?.toUpperCase() || 'U'}
@@ -834,7 +876,7 @@
           <button
             onclick={logout}
             class="p-2 text-slate-400 hover:text-red-600 transition-colors duration-200"
-            title="Logout"
+            title={$t('auth.logout')}
           >
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
@@ -859,8 +901,8 @@
           <header class="sticky top-0 z-10 bg-white/80 backdrop-blur-md border-b border-slate-200 mb-6">
             <div class="flex items-center justify-between px-2">
               <div class="flex items-center gap-3">
-                <h1 class="text-xl font-bold text-slate-900">Dashboard</h1>
-                <span class="text-slate-500 text-sm">{new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</span>
+                <h1 class="text-xl font-bold text-slate-900">{$t('dashboard.title')}</h1>
+                <span class="text-slate-500 text-sm">{new Date().toLocaleDateString($locale, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</span>
               </div>
             </div>
           </header>
@@ -876,7 +918,7 @@
                 </div>
               </div>
               <div class="text-3xl font-bold text-slate-900 mb-1">{stats.totalPatients}</div>
-              <div class="text-slate-500 font-medium">Total Patients</div>
+              <div class="text-slate-500 font-medium">{$t('dashboard.totalPatients')}</div>
             </div>
 
             <div class="bg-white rounded-2xl p-6 border border-slate-200 hover:shadow-lg transition-shadow duration-200">
@@ -888,7 +930,7 @@
                 </div>
               </div>
               <div class="text-3xl font-bold text-slate-900 mb-1">{stats.totalReminders}</div>
-              <div class="text-slate-500 font-medium">Total Reminders</div>
+              <div class="text-slate-500 font-medium">{$t('dashboard.totalReminders')}</div>
             </div>
 
             <div class="bg-white rounded-2xl p-6 border border-slate-200 hover:shadow-lg transition-shadow duration-200">
@@ -900,7 +942,7 @@
                 </div>
               </div>
               <div class="text-3xl font-bold text-slate-900 mb-1">{stats.completedReminders}</div>
-              <div class="text-slate-500 font-medium">Completed</div>
+              <div class="text-slate-500 font-medium">{$t('dashboard.completed')}</div>
             </div>
 
             <div class="bg-white rounded-2xl p-6 border border-slate-200 hover:shadow-lg transition-shadow duration-200">
@@ -912,7 +954,7 @@
                 </div>
               </div>
               <div class="text-3xl font-bold text-slate-900 mb-1">{stats.pendingReminders}</div>
-              <div class="text-slate-500 font-medium">Pending</div>
+              <div class="text-slate-500 font-medium">{$t('dashboard.pending')}</div>
             </div>
           </div>
 
@@ -920,11 +962,11 @@
             <!-- Upcoming Reminders -->
             <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden">
               <div class="px-6 py-4 border-b border-slate-100">
-                <h2 class="text-lg font-semibold text-slate-900">Upcoming Reminders</h2>
+                <h2 class="text-lg font-semibold text-slate-900">{$t('dashboard.upcomingReminders')}</h2>
               </div>
               <div class="p-6 space-y-4">
                 {#if upcomingReminders.length === 0}
-                  <p class="text-slate-500 text-center py-8">No upcoming reminders</p>
+                  <p class="text-slate-500 text-center py-8">{$t('dashboard.noUpcomingReminders')}</p>
                 {:else}
                   {#each upcomingReminders as reminder}
                     <div class="flex items-start gap-4 p-4 rounded-xl bg-slate-50 hover:bg-slate-100 transition-colors duration-200">
@@ -960,12 +1002,12 @@
             <!-- Recent Patients -->
             <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden">
               <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
-                <h2 class="text-lg font-semibold text-slate-900">Recent Patients</h2>
-                <button onclick={() => navigateTo('patients')} class="text-sm text-teal-600 hover:text-teal-700 font-medium">View all</button>
+                <h2 class="text-lg font-semibold text-slate-900">{$t('dashboard.recentPatients')}</h2>
+                <button onclick={() => navigateTo('patients')} class="text-sm text-teal-600 hover:text-teal-700 font-medium">{$t('common.viewAll')}</button>
               </div>
               <div class="p-6 space-y-4">
                 {#if patients.length === 0}
-                  <p class="text-slate-500 text-center py-8">No patients yet</p>
+                  <p class="text-slate-500 text-center py-8">{$t('dashboard.noPatients')}</p>
                 {:else}
                   {#each patients.slice(0, 5) as patient}
                     <div class="flex items-center gap-4 p-4 rounded-xl bg-slate-50 hover:bg-slate-100 transition-colors duration-200">
@@ -974,11 +1016,11 @@
                       </div>
                       <div class="flex-1 min-w-0">
                         <h3 class="font-medium text-slate-900 truncate">{patient.name}</h3>
-                        <p class="text-sm text-slate-500 truncate">{patient.phone || 'No phone'}</p>
+                        <p class="text-sm text-slate-500 truncate">{patient.phone || $t('patients.noPhone')}</p>
                       </div>
                       <div class="text-right">
                         <div class="text-sm font-medium text-slate-900">{patient.reminders?.filter(r => r.completed).length || 0}/{patient.reminders?.length || 0}</div>
-                        <div class="text-xs text-slate-500">reminders</div>
+                        <div class="text-xs text-slate-500">{$t('patients.reminders')}</div>
                       </div>
                     </div>
                   {/each}
@@ -994,7 +1036,7 @@
           <header class="sticky top-0 z-10 bg-white/80 backdrop-blur-md border-b border-slate-200 mb-6">
             <div class="flex items-center justify-between px-2 py-4">
               <div class="flex items-center gap-4">
-                <h1 class="text-xl font-bold text-slate-900">Patients</h1>
+                <h1 class="text-xl font-bold text-slate-900">{$t('patients.title')}</h1>
                 <div class="relative">
                   <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -1002,7 +1044,7 @@
                   <input
                     type="text"
                     bind:value={searchQuery}
-                    placeholder="Search patients..."
+                    placeholder={$t('common.searchPlaceholder')}
                     class="pl-10 pr-4 py-2.5 w-64 bg-slate-100 border-0 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500 focus:bg-white transition-all duration-200"
                   />
                 </div>
@@ -1014,7 +1056,7 @@
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                 </svg>
-                Add Patient
+                {$t('patients.addPatient')}
               </button>
             </div>
           </header>
@@ -1026,19 +1068,19 @@
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                 </svg>
               </div>
-              <h3 class="text-lg font-semibold text-slate-900 mb-2">No patients found</h3>
+              <h3 class="text-lg font-semibold text-slate-900 mb-2">{$t('patients.noPatients')}</h3>
               <p class="text-slate-500 mb-6">
                 {#if searchQuery}
-                  No patients match your search criteria.
+                  {$t('patients.noPatientsMatch')}
                 {:else}
-                  Get started by adding your first patient.
+                  {$t('patients.getStarted')}
                 {/if}
               </p>
               <button
                 onclick={() => openPatientModal()}
                 class="px-6 py-3 bg-teal-600 text-white font-medium rounded-xl hover:bg-teal-700 transition-colors duration-200"
               >
-                Add Patient
+                {$t('patients.addPatient')}
               </button>
             </div>
           {:else}
@@ -1068,7 +1110,7 @@
                             <button
                               onclick={() => openReminderModal(patient.id)}
                               class="p-2 text-teal-600 hover:bg-teal-50 rounded-lg transition-colors duration-200"
-                              title="Add reminder"
+                              title={$t('patients.addReminder')}
                             >
                               <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
@@ -1077,7 +1119,7 @@
                             <button
                               onclick={() => openPatientModal(patient)}
                               class="p-2 text-slate-600 hover:bg-slate-100 rounded-lg transition-colors duration-200"
-                              title="Edit patient"
+                              title={$t('common.edit')}
                             >
                               <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
@@ -1086,7 +1128,7 @@
                             <button
                               onclick={() => deletePatient(patient.id)}
                               class="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors duration-200"
-                              title="Delete patient"
+                              title={$t('common.delete')}
                             >
                               <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -1098,7 +1140,7 @@
                         <!-- Reminders section -->
                         {#if patient.reminders && patient.reminders.length > 0}
                           <div class="mt-4 pt-4 border-t border-slate-100">
-                            <h4 class="text-sm font-medium text-slate-700 mb-3">Reminders</h4>
+                            <h4 class="text-sm font-medium text-slate-700 mb-3">{$t('patients.reminders')}</h4>
                             <div class="space-y-2">
                               {#each patient.reminders as reminder}
                                 <div class="flex items-center gap-3 p-3 rounded-lg {reminder.completed ? 'bg-slate-50' : 'bg-amber-50'}">
@@ -1129,7 +1171,7 @@
                                   <button
                                     onclick={() => openReminderModal(patient.id, reminder)}
                                     class="p-1 text-slate-400 hover:text-teal-600 transition-colors duration-200"
-                                    aria-label="Edit reminder"
+                                    aria-label={$t('common.edit')}
                                   >
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
@@ -1138,7 +1180,7 @@
                                   <button
                                     onclick={() => deleteReminder(patient.id, reminder.id)}
                                     class="p-1 text-slate-400 hover:text-red-600 transition-colors duration-200"
-                                    aria-label="Delete reminder"
+                                    aria-label={$t('common.delete')}
                                   >
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
@@ -1164,13 +1206,13 @@
           <header class="sticky top-0 z-10 bg-white/80 backdrop-blur-md border-b border-slate-200 mb-6">
             <div class="flex items-center justify-between px-2 py-4">
               <div class="flex items-center gap-3">
-                <h1 class="text-xl font-bold text-slate-900">User Management</h1>
+                <h1 class="text-xl font-bold text-slate-900">{$t('users.title')}</h1>
               </div>
               <div class="flex items-center gap-2">
                 <button
                   onclick={loadUsers}
                   class="p-2 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition-colors"
-                  title="Refresh"
+                  title={$t('common.refresh')}
                 >
                   <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
@@ -1183,7 +1225,7 @@
                   <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                   </svg>
-                  Add User
+                  {$t('users.addUser')}
                 </button>
               </div>
             </div>
@@ -1192,15 +1234,15 @@
           <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden">
             <div class="overflow-x-auto">
               {#if users.length === 0}
-                <p class="text-slate-500 text-center py-12">No users found</p>
+                <p class="text-slate-500 text-center py-12">{$t('users.noUsers')}</p>
               {:else}
                 <table class="w-full">
                   <thead class="bg-slate-50">
                     <tr>
-                      <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">User</th>
-                      <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Role</th>
-                      <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Created</th>
-                      <th class="px-6 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">Actions</th>
+                      <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">{$t('users.user')}</th>
+                      <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">{$t('users.role')}</th>
+                      <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">{$t('users.created')}</th>
+                      <th class="px-6 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">{$t('users.actions')}</th>
                     </tr>
                   </thead>
                   <tbody class="divide-y divide-slate-100">
@@ -1212,7 +1254,7 @@
                               {u.fullName?.charAt(0)?.toUpperCase() || u.username?.charAt(0)?.toUpperCase() || 'U'}
                             </div>
                             <div>
-                              <p class="text-sm font-medium text-slate-900">{u.fullName || 'No name'}</p>
+                              <p class="text-sm font-medium text-slate-900">{u.fullName || $t('users.noName')}</p>
                               <p class="text-sm text-slate-500">@{u.username}</p>
                             </div>
                           </div>
@@ -1226,7 +1268,7 @@
                           </span>
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
-                          {u.createdAt ? new Date(u.createdAt).toLocaleDateString() : '-'}
+                          {u.createdAt ? new Date(u.createdAt).toLocaleDateString($locale) : '-'}
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-right">
                           <div class="flex items-center justify-end gap-2">
@@ -1234,7 +1276,7 @@
                               <button
                                 onclick={() => openUserModal(u)}
                                 class="p-2 text-slate-400 hover:text-teal-600 hover:bg-teal-50 rounded-lg transition-colors"
-                                title="Edit role"
+                                title={$t('common.edit')}
                               >
                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
@@ -1243,14 +1285,14 @@
                               <button
                                 onclick={() => deleteUser(u.id)}
                                 class="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                                title="Delete user"
+                                title={$t('common.delete')}
                               >
                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                                 </svg>
                               </button>
                             {:else}
-                              <span class="text-xs text-slate-400 px-2">You</span>
+                              <span class="text-xs text-slate-400 px-2">{$t('common.you')}</span>
                             {/if}
                           </div>
                         </td>
@@ -1278,49 +1320,49 @@
         aria-label="Close modal"
       ></div>
       <div class="relative bg-white rounded-2xl shadow-xl w-full max-w-md p-6" onclick={(e) => e.stopPropagation()} onkeydown={(e) => e.stopPropagation()} role="dialog" aria-modal="true" tabindex="-1">
-        <h2 class="text-xl font-semibold text-slate-900 mb-6">{editingPatient ? 'Edit Patient' : 'Add Patient'}</h2>
+        <h2 class="text-xl font-semibold text-slate-900 mb-6">{editingPatient ? $t('patients.editPatient') : $t('patients.addPatient')}</h2>
         <form onsubmit={(e) => { e.preventDefault(); savePatient(); }} class="space-y-4">
           <div>
-            <label for="name" class="block text-sm font-medium text-slate-700 mb-1">Name *</label>
+            <label for="name" class="block text-sm font-medium text-slate-700 mb-1">{$t('patients.patientName')} *</label>
             <input
               id="name"
               type="text"
               bind:value={patientForm.name}
               required
               class="w-full px-4 py-2.5 bg-slate-100 border-0 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500 focus:bg-white transition-all duration-200"
-              placeholder="Patient name"
+              placeholder={$t('patients.patientName')}
             />
           </div>
           <div>
-            <label for="phone" class="block text-sm font-medium text-slate-700 mb-1">WhatsApp Number *</label>
+            <label for="phone" class="block text-sm font-medium text-slate-700 mb-1">{$t('patients.whatsappNumber')} *</label>
             <input
               id="phone"
               type="tel"
               bind:value={patientForm.phone}
               required
               class="w-full px-4 py-2.5 bg-slate-100 border-0 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500 focus:bg-white transition-all duration-200"
-              placeholder="e.g., 6281234567890"
+              placeholder="6281234567890"
             />
-            <p class="text-xs text-slate-500 mt-1">WhatsApp number for reminder notifications</p>
+            <p class="text-xs text-slate-500 mt-1">{$t('patients.whatsappNote')}</p>
           </div>
           <div>
-            <label for="email" class="block text-sm font-medium text-slate-700 mb-1">Email</label>
+            <label for="email" class="block text-sm font-medium text-slate-700 mb-1">{$t('patients.email')}</label>
             <input
               id="email"
               type="email"
               bind:value={patientForm.email}
               class="w-full px-4 py-2.5 bg-slate-100 border-0 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500 focus:bg-white transition-all duration-200"
-              placeholder="Email address"
+              placeholder={$t('patients.emailPlaceholder')}
             />
           </div>
           <div>
-            <label for="notes" class="block text-sm font-medium text-slate-700 mb-1">Notes</label>
+            <label for="notes" class="block text-sm font-medium text-slate-700 mb-1">{$t('patients.notes')}</label>
             <textarea
               id="notes"
               bind:value={patientForm.notes}
               rows="3"
               class="w-full px-4 py-2.5 bg-slate-100 border-0 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500 focus:bg-white transition-all duration-200 resize-none"
-              placeholder="Any notes about the patient..."
+              placeholder={$t('patients.notesPlaceholder')}
             ></textarea>
           </div>
           <div class="flex gap-3 pt-4">
@@ -1329,13 +1371,13 @@
               onclick={closePatientModal}
               class="flex-1 px-4 py-2.5 border border-slate-200 text-slate-700 font-medium rounded-xl hover:bg-slate-50 transition-colors duration-200"
             >
-              Cancel
+              {$t('common.cancel')}
             </button>
             <button
               type="submit"
               class="flex-1 px-4 py-2.5 bg-teal-600 text-white font-medium rounded-xl hover:bg-teal-700 transition-colors duration-200"
             >
-              {editingPatient ? 'Save Changes' : 'Add Patient'}
+              {editingPatient ? $t('common.save') : $t('patients.addPatient')}
             </button>
           </div>
         </form>
@@ -1355,31 +1397,31 @@
         aria-label="Close modal"
       ></div>
       <div class="relative bg-white rounded-2xl shadow-xl w-full max-w-md p-6 max-h-[90vh] overflow-y-auto" onclick={(e) => e.stopPropagation()} onkeydown={(e) => e.stopPropagation()} role="dialog" aria-modal="true" tabindex="-1">
-        <h2 class="text-xl font-semibold text-slate-900 mb-6">{editingReminder ? 'Edit Reminder' : 'Add Reminder'}</h2>
+        <h2 class="text-xl font-semibold text-slate-900 mb-6">{editingReminder ? $t('patients.editReminder') : $t('patients.addReminder')}</h2>
         <form onsubmit={(e) => { e.preventDefault(); saveReminder(); }} class="space-y-4">
           <div>
-            <label for="title" class="block text-sm font-medium text-slate-700 mb-1">Title *</label>
+            <label for="title" class="block text-sm font-medium text-slate-700 mb-1">{$t('reminders.title')} *</label>
             <input
               id="title"
               type="text"
               bind:value={reminderForm.title}
               required
               class="w-full px-4 py-2.5 bg-slate-100 border-0 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500 focus:bg-white transition-all duration-200"
-              placeholder="e.g., Medication reminder"
+              placeholder={$t('reminders.titlePlaceholder')}
             />
           </div>
           <div>
-            <label for="description" class="block text-sm font-medium text-slate-700 mb-1">Description</label>
+            <label for="description" class="block text-sm font-medium text-slate-700 mb-1">{$t('reminders.description')}</label>
             <textarea
               id="description"
               bind:value={reminderForm.description}
               rows="3"
               class="w-full px-4 py-2.5 bg-slate-100 border-0 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500 focus:bg-white transition-all duration-200 resize-none"
-              placeholder="Additional details..."
+              placeholder={$t('reminders.descriptionPlaceholder')}
             ></textarea>
           </div>
           <div>
-            <label for="dueDate" class="block text-sm font-medium text-slate-700 mb-1">Due Date & Time</label>
+            <label for="dueDate" class="block text-sm font-medium text-slate-700 mb-1">{$t('reminders.dueDate')}</label>
             <input
               id="dueDate"
               type="datetime-local"
@@ -1388,40 +1430,40 @@
             />
           </div>
           <div>
-            <label for="priority" class="block text-sm font-medium text-slate-700 mb-1">Priority</label>
+            <label for="priority" class="block text-sm font-medium text-slate-700 mb-1">{$t('reminders.priority')}</label>
             <select
               id="priority"
               bind:value={reminderForm.priority}
               class="w-full px-4 py-2.5 bg-slate-100 border-0 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500 focus:bg-white transition-all duration-200"
             >
-              <option value="low">Low</option>
-              <option value="medium">Medium</option>
-              <option value="high">High</option>
+              <option value="low">{$t('reminders.low')}</option>
+              <option value="medium">{$t('reminders.medium')}</option>
+              <option value="high">{$t('reminders.high')}</option>
             </select>
           </div>
 
           <!-- Recurrence Section -->
           <div class="pt-4 border-t border-slate-100">
-            <h3 class="text-sm font-medium text-slate-700 mb-3">Recurrence</h3>
+            <h3 class="text-sm font-medium text-slate-700 mb-3">{$t('reminders.recurrence')}</h3>
             <div class="space-y-3">
               <div>
-                <label for="frequency" class="block text-xs text-slate-500 mb-1">Repeat</label>
+                <label for="frequency" class="block text-xs text-slate-500 mb-1">{$t('reminders.repeat')}</label>
                 <select
                   id="frequency"
                   bind:value={reminderForm.recurrence.frequency}
                   class="w-full px-4 py-2.5 bg-slate-100 border-0 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500 focus:bg-white transition-all duration-200"
                 >
-                  <option value="none">Does not repeat</option>
-                  <option value="daily">Daily</option>
-                  <option value="weekly">Weekly</option>
-                  <option value="monthly">Monthly</option>
-                  <option value="yearly">Yearly</option>
+                  <option value="none">{$t('reminders.doesNotRepeat')}</option>
+                  <option value="daily">{$t('reminders.daily')}</option>
+                  <option value="weekly">{$t('reminders.weekly')}</option>
+                  <option value="monthly">{$t('reminders.monthly')}</option>
+                  <option value="yearly">{$t('reminders.yearly')}</option>
                 </select>
               </div>
 
               {#if reminderForm.recurrence.frequency !== 'none'}
                 <div>
-                  <label for="interval" class="block text-xs text-slate-500 mb-1">Repeat every</label>
+                  <label for="interval" class="block text-xs text-slate-500 mb-1">{$t('reminders.repeatEvery')}</label>
                   <input
                     id="interval"
                     type="number"
@@ -1434,8 +1476,8 @@
 
                 {#if reminderForm.recurrence.frequency === 'weekly'}
                   <div>
-                    <span class="block text-xs text-slate-500 mb-2">Days of week</span>
-                    <div class="flex gap-1" role="group" aria-label="Days of week">
+                    <span class="block text-xs text-slate-500 mb-2">{$t('reminders.daysOfWeek')}</span>
+                    <div class="flex gap-1" role="group" aria-label={$t('reminders.daysOfWeek')}>
                       {#each daysOfWeek as day}
                         <button
                           type="button"
@@ -1450,7 +1492,7 @@
                 {/if}
 
                 <div>
-                  <label for="endDate" class="block text-xs text-slate-500 mb-1">End date (optional)</label>
+                  <label for="endDate" class="block text-xs text-slate-500 mb-1">{$t('reminders.endDate')}</label>
                   <input
                     id="endDate"
                     type="date"
@@ -1468,13 +1510,13 @@
               onclick={closeReminderModal}
               class="flex-1 px-4 py-2.5 border border-slate-200 text-slate-700 font-medium rounded-xl hover:bg-slate-50 transition-colors duration-200"
             >
-              Cancel
+              {$t('common.cancel')}
             </button>
             <button
               type="submit"
               class="flex-1 px-4 py-2.5 bg-teal-600 text-white font-medium rounded-xl hover:bg-teal-700 transition-colors duration-200"
             >
-              {editingReminder ? 'Save Changes' : 'Add Reminder'}
+              {editingReminder ? $t('common.save') : $t('patients.addReminder')}
             </button>
           </div>
         </form>
@@ -1494,7 +1536,7 @@
         aria-label="Close modal"
       ></div>
       <div class="relative bg-white rounded-2xl shadow-xl w-full max-w-sm p-6" onclick={(e) => e.stopPropagation()} onkeydown={(e) => e.stopPropagation()} role="dialog" aria-modal="true" tabindex="-1">
-        <h2 class="text-xl font-semibold text-slate-900 mb-6">{editingUser ? 'Edit User Role' : 'Add New User'}</h2>
+        <h2 class="text-xl font-semibold text-slate-900 mb-6">{editingUser ? $t('users.editUserRole') : $t('users.addUser')}</h2>
         {#if editingUser}
           <div class="mb-6">
             <div class="flex items-center gap-3 p-3 bg-slate-50 rounded-xl mb-4">
@@ -1502,26 +1544,26 @@
                 {editingUser.fullName?.charAt(0)?.toUpperCase() || editingUser.username?.charAt(0)?.toUpperCase() || 'U'}
               </div>
               <div>
-                <p class="font-medium text-slate-900">{editingUser.fullName || 'No name'}</p>
+                <p class="font-medium text-slate-900">{editingUser.fullName || $t('users.noName')}</p>
                 <p class="text-sm text-slate-500">@{editingUser.username}</p>
               </div>
             </div>
             <form onsubmit={(e) => { e.preventDefault(); updateUserRole(); }} class="space-y-4">
               <div>
-                <label for="userRole" class="block text-sm font-medium text-slate-700 mb-1">Role</label>
+                <label for="userRole" class="block text-sm font-medium text-slate-700 mb-1">{$t('users.role')}</label>
                 <select
                   id="userRole"
                   bind:value={userForm.role}
                   class="w-full px-4 py-2.5 bg-slate-100 border-0 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500 focus:bg-white transition-all duration-200"
                 >
-                  <option value="admin">Admin</option>
-                  <option value="volunteer">Volunteer</option>
+                  <option value="admin">{$t('users.admin')}</option>
+                  <option value="volunteer">{$t('users.volunteer')}</option>
                 </select>
                 <p class="text-xs text-slate-500 mt-2">
                   {#if userForm.role === 'admin'}
-                    Admins can view all patients but cannot manage users.
+                    {$t('users.roleDescription.admin')}
                   {:else}
-                    Volunteers can only see patients they created.
+                    {$t('users.roleDescription.volunteer')}
                   {/if}
                 </p>
               </div>
@@ -1531,13 +1573,13 @@
                   onclick={closeUserModal}
                   class="flex-1 px-4 py-2.5 border border-slate-200 text-slate-700 font-medium rounded-xl hover:bg-slate-50 transition-colors duration-200"
                 >
-                  Cancel
+                  {$t('common.cancel')}
                 </button>
                 <button
                   type="submit"
                   class="flex-1 px-4 py-2.5 bg-teal-600 text-white font-medium rounded-xl hover:bg-teal-700 transition-colors duration-200"
                 >
-                  Save Changes
+                  {$t('common.save')}
                 </button>
               </div>
             </form>
@@ -1545,12 +1587,12 @@
         {:else}
           <form onsubmit={(e) => { e.preventDefault(); registerUser(); }} class="space-y-4">
             <div>
-              <label for="newUsername" class="block text-sm font-medium text-slate-700 mb-1">Username</label>
+              <label for="newUsername" class="block text-sm font-medium text-slate-700 mb-1">{$t('auth.username')}</label>
               <input
                 type="text"
                 id="newUsername"
                 bind:value={userForm.username}
-                placeholder="Enter username"
+                placeholder={$t('auth.enterUsername')}
                 minlength="3"
                 maxlength="30"
                 required
@@ -1558,12 +1600,12 @@
               />
             </div>
             <div>
-              <label for="newPassword" class="block text-sm font-medium text-slate-700 mb-1">Password</label>
+              <label for="newPassword" class="block text-sm font-medium text-slate-700 mb-1">{$t('auth.password')}</label>
               <input
                 type="password"
                 id="newPassword"
                 bind:value={userForm.password}
-                placeholder="Enter password (min 6 chars)"
+                placeholder={$t('auth.minChars', { values: { n: 6 } })}
                 minlength="6"
                 required
                 class="w-full px-4 py-2.5 bg-slate-100 border-0 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500 focus:bg-white transition-all duration-200"
@@ -1575,7 +1617,7 @@
                 onclick={closeUserModal}
                 class="flex-1 px-4 py-2.5 border border-slate-200 text-slate-700 font-medium rounded-xl hover:bg-slate-50 transition-colors duration-200"
               >
-                Cancel
+                {$t('common.cancel')}
               </button>
               <button
                 type="submit"
@@ -1585,7 +1627,7 @@
                 {#if userFormLoading}
                   <div class="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
                 {/if}
-                Add User
+                {$t('users.addUser')}
               </button>
             </div>
           </form>
@@ -1619,13 +1661,13 @@
             onclick={closeConfirmModal}
             class="flex-1 px-4 py-2.5 border border-slate-200 text-slate-700 font-medium rounded-xl hover:bg-slate-50 transition-colors duration-200"
           >
-            Cancel
+            {$t('common.cancel')}
           </button>
           <button
             onclick={handleConfirm}
             class="flex-1 px-4 py-2.5 bg-red-600 text-white font-medium rounded-xl hover:bg-red-700 transition-colors duration-200"
           >
-            Delete
+            {$t('common.delete')}
           </button>
         </div>
       </div>

@@ -1,0 +1,145 @@
+{
+  "app": {
+    "name": "CareKeeper",
+    "tagline": "Dasbor Relawan Kesehatan"
+  },
+  "auth": {
+    "login": "Masuk",
+    "register": "Daftar",
+    "logout": "Keluar",
+    "username": "Nama Pengguna",
+    "password": "Kata Sandi",
+    "confirmPassword": "Konfirmasi Kata Sandi",
+    "fullName": "Nama Lengkap",
+    "loginButton": "Masuk",
+    "registerButton": "Buat Akun",
+    "loggingIn": "Sedang masuk...",
+    "creatingAccount": "Membuat akun...",
+    "enterUsername": "Masukkan nama pengguna Anda",
+    "enterPassword": "Masukkan kata sandi Anda",
+    "chooseUsername": "Pilih nama pengguna",
+    "choosePassword": "Pilih kata sandi",
+    "confirmYourPassword": "Konfirmasi kata sandi Anda",
+    "yourFullName": "Nama lengkap Anda",
+    "passwordsDoNotMatch": "Kata sandi tidak cocok",
+    "minChars": "Min {n} karakter",
+    "connectionError": "Kesalahan koneksi. Periksa koneksi internet Anda.",
+    "loginFailed": "Gagal masuk",
+    "registrationFailed": "Pendaftaran gagal. Silakan coba lagi."
+  },
+  "common": {
+    "save": "Simpan",
+    "cancel": "Batal",
+    "delete": "Hapus",
+    "edit": "Ubah",
+    "add": "Tambah",
+    "close": "Tutup",
+    "loading": "Memuat...",
+    "search": "Cari",
+    "searchPlaceholder": "Cari...",
+    "noResults": "Tidak ada hasil",
+    "required": "Wajib diisi",
+    "optional": "Opsional",
+    "yes": "Ya",
+    "no": "Tidak",
+    "confirm": "Konfirmasi",
+    "viewAll": "Lihat semua",
+    "refresh": "Segarkan",
+    "you": "Anda"
+  },
+  "navigation": {
+    "dashboard": "Beranda",
+    "patients": "Pasien",
+    "users": "Pengguna",
+    "volunteerDashboard": "Dasbor Relawan"
+  },
+  "dashboard": {
+    "title": "Beranda",
+    "totalPatients": "Total Pasien",
+    "totalReminders": "Total Pengingat",
+    "completed": "Selesai",
+    "pending": "Tertunda",
+    "upcomingReminders": "Pengingat Mendatang",
+    "noUpcomingReminders": "Tidak ada pengingat mendatang",
+    "recentPatients": "Pasien Terbaru",
+    "noPatients": "Belum ada pasien",
+    "viewAllPatients": "Lihat semua pasien"
+  },
+  "patients": {
+    "title": "Pasien",
+    "addPatient": "Tambah Pasien",
+    "editPatient": "Ubah Pasien",
+    "patientName": "Nama pasien",
+    "phone": "Telepon",
+    "whatsappNumber": "Nomor WhatsApp",
+    "whatsappNote": "Nomor WhatsApp untuk notifikasi pengingat",
+    "email": "Email",
+    "emailPlaceholder": "Alamat email",
+    "notes": "Catatan",
+    "notesPlaceholder": "Catatan tentang pasien...",
+    "noPatients": "Tidak ada pasien ditemukan",
+    "noPatientsMatch": "Tidak ada pasien yang cocok dengan kriteria pencarian Anda.",
+    "getStarted": "Mulai dengan menambahkan pasien pertama Anda.",
+    "noPhone": "Tidak ada telepon",
+    "reminders": "Pengingat",
+    "addReminder": "Tambah pengingat",
+    "editReminder": "Ubah pengingat",
+    "deletePatientTitle": "Hapus Pasien",
+    "deletePatientMessage": "Apakah Anda yakin ingin menghapus pasien ini?"
+  },
+  "reminders": {
+    "title": "Judul",
+    "titlePlaceholder": "mis., Pengingat obat",
+    "description": "Deskripsi",
+    "descriptionPlaceholder": "Detail tambahan...",
+    "dueDate": "Tanggal & Waktu Jatuh Tempo",
+    "priority": "Prioritas",
+    "low": "Rendah",
+    "medium": "Sedang",
+    "high": "Tinggi",
+    "recurrence": "Pengulangan",
+    "repeat": "Ulangi",
+    "doesNotRepeat": "Tidak berulang",
+    "daily": "Harian",
+    "weekly": "Mingguan",
+    "monthly": "Bulanan",
+    "yearly": "Tahunan",
+    "repeatEvery": "Ulangi setiap",
+    "daysOfWeek": "Hari dalam seminggu",
+    "endDate": "Tanggal berakhir (opsional)"
+  },
+  "users": {
+    "title": "Manajemen Pengguna",
+    "addUser": "Tambah Pengguna",
+    "editUserRole": "Ubah Peran Pengguna",
+    "user": "Pengguna",
+    "role": "Peran",
+    "created": "Dibuat",
+    "actions": "Aksi",
+    "noUsers": "Tidak ada pengguna ditemukan",
+    "noName": "Tanpa nama",
+    "superadmin": "Superadmin",
+    "admin": "Admin",
+    "volunteer": "Relawan",
+    "roleDescription": {
+      "admin": "Admin dapat melihat semua pasien tetapi tidak dapat mengelola pengguna.",
+      "volunteer": "Relawan hanya dapat melihat pasien yang mereka buat."
+    }
+  },
+  "confirm": {
+    "deletePatient": "Apakah Anda yakin ingin menghapus pasien ini?",
+    "deleteReminder": "Apakah Anda yakin ingin menghapus pengingat ini?",
+    "deleteUser": "Apakah Anda yakin ingin menghapus pengguna ini?"
+  },
+  "password": {
+    "strength": {
+      "weak": "Lemah",
+      "fair": "Cukup",
+      "good": "Baik",
+      "strong": "Kuat"
+    }
+  },
+  "validation": {
+    "usernameMin": "Nama pengguna minimal 3 karakter"
+  }
+}
