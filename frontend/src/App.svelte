@@ -479,7 +479,8 @@
     onLogout={logout}
   />
 
-  <main class="flex-1 lg:ml-64 p-4 lg:p-6 min-h-screen pb-20 lg:pb-6">
+  <main class="flex-1 lg:ml-64 p-3 sm:p-4 md:p-5 lg:p-6 xl:p-8 min-h-screen pb-24 lg:pb-6">
+    <div class="max-w-7xl mx-auto">
     {#if loading}
       <div class="flex items-center justify-center h-64">
         <div class="animate-spin w-10 h-10 border-4 border-teal-600 border-t-transparent rounded-full"></div>
@@ -522,6 +523,7 @@
         <VideoEdukasiView onWatchVideo={watchVideo} />
       {/if}
     {/if}
+    </div>
   </main>
 
   <BottomNav

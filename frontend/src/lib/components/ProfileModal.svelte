@@ -10,7 +10,7 @@
 </script>
 
 {#if show}
-  <div class="fixed inset-0 z-50 flex items-end lg:items-center justify-center p-4">
+  <div class="fixed inset-0 z-50 flex items-end lg:items-center justify-center lg:p-4">
     <div
       class="absolute inset-0 bg-slate-900/50 backdrop-blur-sm"
       onclick={onClose}
@@ -20,7 +20,7 @@
       aria-label="Close modal"
     ></div>
     <div
-      class="relative bg-white rounded-t-2xl lg:rounded-2xl shadow-xl w-full max-w-sm p-4 pb-8 lg:p-6"
+      class="relative bg-white rounded-t-2xl lg:rounded-2xl shadow-xl w-full lg:max-w-sm p-4 pb-8 lg:p-6"
       onclick={(e) => e.stopPropagation()}
       onkeydown={(e) => e.stopPropagation()}
       role="dialog"
