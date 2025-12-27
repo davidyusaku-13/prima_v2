@@ -7,6 +7,12 @@
   import DashboardView from '$lib/views/DashboardView.svelte';
   import PatientsView from '$lib/views/PatientsView.svelte';
   import UsersView from '$lib/views/UsersView.svelte';
+  import BeritaView from '$lib/views/BeritaView.svelte';
+  import BeritaDetailView from '$lib/views/BeritaDetailView.svelte';
+  import VideoEdukasiView from '$lib/views/VideoEdukasiView.svelte';
+  import CMSDashboardView from '$lib/views/CMSDashboardView.svelte';
+  import ArticleEditorView from '$lib/views/ArticleEditorView.svelte';
+  import VideoManagerView from '$lib/views/VideoManagerView.svelte';
   import Sidebar from '$lib/components/Sidebar.svelte';
   import BottomNav from '$lib/components/BottomNav.svelte';
   import PatientModal from '$lib/components/PatientModal.svelte';
@@ -14,6 +20,7 @@
   import UserModal from '$lib/components/UserModal.svelte';
   import ConfirmModal from '$lib/components/ConfirmModal.svelte';
   import ProfileModal from '$lib/components/ProfileModal.svelte';
+  import VideoModal from '$lib/components/VideoModal.svelte';
 
   // API
   import * as api from '$lib/utils/api.js';
@@ -82,6 +89,56 @@
 
   // Filters
   let searchQuery = '';
+
+  // CMS State
+  let showArticleEditor = false;
+  let editingArticle = null;
+  let showVideoManager = false;
+  let showVideoModal = false;
+  let currentVideo = null;
+  let currentArticleId = null;
+
+  // CMS Functions
+  function openArticleEditor(article = null) {
+    editingArticle = article;
+    showArticleEditor = true;
+  }
+
+  function closeArticleEditor() {
+    showArticleEditor = false;
+    editingArticle = null;
+  }
+
+  function handleArticleSave(status) {
+    console.log('Article saved:', status);
+  }
+
+  function openVideoManager() {
+    showVideoManager = true;
+  }
+
+  function closeVideoManager() {
+    showVideoManager = false;
+  }
+
+  function handleVideoSave() {
+    console.log('Video saved');
+  }
+
+  function watchVideo(video) {
+    currentVideo = video;
+    showVideoModal = true;
+  }
+
+  function closeVideoModal() {
+    showVideoModal = false;
+    currentVideo = null;
+  }
+
+  function viewArticle(article) {
+    currentArticleId = article.id;
+    navigateTo('berita-detail');
+  }
 
   // Locale
   function setLocale(newLocale) {
@@ -360,6 +417,9 @@
     currentView = view;
     localStorage.setItem('currentView', view);
     if (view === 'users') loadUsers();
+    if (view === 'berita-detail' && !currentArticleId) {
+      currentView = 'berita';
+    }
   }
 
   // Confirm modal
@@ -445,6 +505,21 @@
           onOpenUserModal={openUserModal}
           onDeleteUser={deleteUser}
         />
+      {:else if currentView === 'cms' && (user?.role === 'superadmin' || user?.role === 'admin')}
+        <CMSDashboardView
+          onNavigateToArticleEditor={() => openArticleEditor()}
+          onNavigateToVideoManager={openVideoManager}
+          onNavigateToArticle={viewArticle}
+        />
+      {:else if currentView === 'berita'}
+        <BeritaView onNavigateToArticle={viewArticle} />
+      {:else if currentView === 'berita-detail'}
+        <BeritaDetailView
+          articleId={currentArticleId}
+          onBack={() => { currentArticleId = null; currentView = 'berita'; }}
+        />
+      {:else if currentView === 'video'}
+        <VideoEdukasiView onWatchVideo={watchVideo} />
       {/if}
     {/if}
   </main>
@@ -504,5 +579,31 @@
     message={confirmMessage}
     onClose={closeConfirmModal}
     onConfirm={handleConfirm}
+  />
+
+  <!-- Article Editor Modal -->
+  {#if showArticleEditor}
+    <ArticleEditorView
+      article={editingArticle}
+      {token}
+      onClose={closeArticleEditor}
+      onSave={handleArticleSave}
+    />
+  {/if}
+
+  <!-- Video Manager Modal -->
+  {#if showVideoManager}
+    <VideoManagerView
+      {token}
+      onClose={closeVideoManager}
+      onSave={handleVideoSave}
+    />
+  {/if}
+
+  <!-- Video Modal -->
+  <VideoModal
+    show={showVideoModal}
+    video={currentVideo}
+    onClose={closeVideoModal}
   />
 {/if}

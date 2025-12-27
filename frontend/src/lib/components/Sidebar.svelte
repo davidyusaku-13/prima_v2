@@ -59,6 +59,48 @@
           <span class="ml-auto bg-purple-100 text-purple-700 text-xs font-medium px-2 py-0.5 rounded-full">{users.length}</span>
         </button>
       {/if}
+
+      <!-- Divider -->
+      <div class="my-4 border-t border-slate-100"></div>
+
+      <!-- CMS Section (Admin Only) -->
+      {#if user?.role === 'superadmin' || user?.role === 'admin'}
+        <div class="px-4 mb-2">
+          <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">{$t('common.cms')}</span>
+        </div>
+        <button
+          onclick={() => onNavigate('cms')}
+          class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-all duration-200 {currentView === 'cms' ? 'bg-amber-50 text-amber-700 font-medium' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'}"
+        >
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z" />
+          </svg>
+          {$t('cms.dashboard')}
+        </button>
+      {/if}
+
+      <!-- Public Content -->
+      <div class="px-4 mb-2 mt-2">
+        <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">{$t('common.more')}</span>
+      </div>
+      <button
+        onclick={() => onNavigate('berita')}
+        class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-all duration-200 {currentView === 'berita' ? 'bg-blue-50 text-blue-700 font-medium' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'}"
+      >
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" />
+        </svg>
+        {$t('berita.title')}
+      </button>
+      <button
+        onclick={() => onNavigate('video')}
+        class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-all duration-200 {currentView === 'video' ? 'bg-red-50 text-red-700 font-medium' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'}"
+      >
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+        </svg>
+        {$t('video.title')}
+      </button>
     </div>
   </nav>
 
@@ -91,7 +133,7 @@
           <p class="text-xs text-slate-500 truncate">@{user?.username}</p>
           {#if user?.role}
             <span class="px-1.5 py-0.5 text-xs font-medium rounded {user?.role === 'superadmin' ? 'bg-purple-100 text-purple-700' : user?.role === 'admin' ? 'bg-blue-100 text-blue-700' : 'bg-slate-200 text-slate-600'}">
-              {user?.role}
+              {$t(`users.${user.role}`)}
             </span>
           {/if}
         </div>

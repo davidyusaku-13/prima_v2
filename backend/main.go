@@ -16,12 +16,17 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/gin-contrib/cors"
 	"github.com/golang-jwt/jwt/v5"
+
+	"github.com/davidyusaku-13/prima_v2/handlers"
 )
 
 const (
-	dataFile       = "data/patients.json"
-	usersDataFile  = "data/users.json"
-	jwtSecretFile  = "data/jwt_secret.txt"
+	dataFile           = "data/patients.json"
+	usersDataFile      = "data/users.json"
+	jwtSecretFile      = "data/jwt_secret.txt"
+	categoriesDataFile = "data/categories.json"
+	articlesDataFile   = "data/articles.json"
+	videosDataFile     = "data/videos.json"
 )
 
 const tokenExpiry = 24 * 7 * time.Hour // 1 week
@@ -236,8 +241,9 @@ type UserStore struct {
 }
 
 var (
-	store    = PatientStore{patients: make(map[string]*Patient)}
-	userStore = UserStore{users: make(map[string]*User), byName: make(map[string]string)}
+	store        = PatientStore{patients: make(map[string]*Patient)}
+	userStore    = UserStore{users: make(map[string]*User), byName: make(map[string]string)}
+	contentStore *handlers.ContentStore
 )
 
 func main() {
@@ -252,6 +258,10 @@ func main() {
 	// Load existing data
 	loadData()
 	loadUsers()
+
+	// Initialize and load content store
+	contentStore = handlers.NewContentStore()
+	contentStore.LoadContentData()
 
 	// Create default superadmin if not exists
 	createDefaultSuperadmin()
@@ -269,6 +279,9 @@ func main() {
 		AllowCredentials: true,
 	}))
 
+	// Serve uploaded files
+	router.Static("/uploads", "./uploads")
+
 	// Health check (public)
 	router.GET("/api/health", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"status": "ok"})
@@ -277,6 +290,21 @@ func main() {
 	// Auth routes (public)
 	router.POST("/api/auth/register", register)
 	router.POST("/api/auth/login", login)
+
+	// Public content routes (no auth required)
+	contentPublic := router.Group("/api")
+	{
+		// Categories
+		contentPublic.GET("/categories", contentStore.ListCategories)
+		contentPublic.GET("/categories/:type", contentStore.GetCategoriesByType)
+
+		// Articles
+		contentPublic.GET("/articles", contentStore.ListArticles)
+		contentPublic.GET("/articles/:slug", contentStore.GetArticle)
+
+		// Videos
+		contentPublic.GET("/videos", contentStore.ListVideos)
+	}
 
 	// Protected routes
 	api := router.Group("/api")
@@ -302,6 +330,25 @@ func main() {
 		api.GET("/users", requireRole(RoleSuperadmin), getUsers)
 		api.PUT("/users/:id/role", requireRole(RoleSuperadmin), updateUserRole)
 		api.DELETE("/users/:id", requireRole(RoleSuperadmin), deleteUser)
+
+		// CMS routes (admin+)
+		// Categories
+		api.POST("/categories", requireRole(RoleAdmin, RoleSuperadmin), contentStore.CreateCategory)
+
+		// Articles
+		api.POST("/articles", requireRole(RoleAdmin, RoleSuperadmin), contentStore.CreateArticle)
+		api.PUT("/articles/:id", requireRole(RoleAdmin, RoleSuperadmin), contentStore.UpdateArticle)
+		api.DELETE("/articles/:id", requireRole(RoleAdmin, RoleSuperadmin), contentStore.DeleteArticle)
+
+		// Videos
+		api.POST("/videos", requireRole(RoleAdmin, RoleSuperadmin), contentStore.CreateVideo)
+		api.DELETE("/videos/:id", requireRole(RoleAdmin, RoleSuperadmin), contentStore.DeleteVideo)
+
+		// Upload
+		api.POST("/upload/image", requireRole(RoleAdmin, RoleSuperadmin), contentStore.UploadImage)
+
+		// Dashboard stats
+		api.GET("/dashboard/stats", requireRole(RoleAdmin, RoleSuperadmin), contentStore.GetDashboardStats)
 	}
 
 	router.Run(":8080")
