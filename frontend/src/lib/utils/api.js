@@ -141,10 +141,12 @@ export async function registerUser(token, username, password) {
 }
 
 // CMS - Articles
-export async function fetchArticles(token = null, category = null) {
-  const url = category
-    ? `${API_URL}/articles?category=${encodeURIComponent(category)}`
-    : `${API_URL}/articles`;
+export async function fetchArticles(token = null, category = null, all = false) {
+  const params = new URLSearchParams();
+  if (category) params.append('category', category);
+  if (all) params.append('all', 'true');
+  const queryString = params.toString();
+  const url = queryString ? `${API_URL}/articles?${queryString}` : `${API_URL}/articles`;
   const res = await fetch(url, { headers: getHeaders(token) });
   if (!res.ok) throw new Error('Failed to fetch articles');
   const data = await res.json();

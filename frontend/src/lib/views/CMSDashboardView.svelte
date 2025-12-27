@@ -38,7 +38,7 @@
     try {
       const [dashboardStats, articles, videos] = await Promise.all([
         api.fetchDashboardStats(token),
-        api.fetchArticles(token),
+        api.fetchArticles(token, null, true), // all=true to include drafts
         api.fetchVideos(token)
       ]);
 
@@ -112,8 +112,7 @@
   // Reset to page 1 when filters change
   $: if (activeFilter || searchQuery || sortBy) {
     currentPage = 1;
-    selectedItems.clear();
-    selectedItems = selectedItems;
+    selectedItems = new Set();
   }
 
   // View mode toggle
@@ -125,22 +124,20 @@
   // Selection handlers
   function toggleSelectAll() {
     if (selectedItems.size === paginatedContent.length) {
-      selectedItems.clear();
+      selectedItems = new Set();
     } else {
-      paginatedContent.forEach(item => {
-        selectedItems.add(item.id);
-      });
+      selectedItems = new Set(paginatedContent.map(item => item.id));
     }
-    selectedItems = selectedItems;
   }
 
   function toggleItemSelection(itemId) {
-    if (selectedItems.has(itemId)) {
-      selectedItems.delete(itemId);
+    const newSet = new Set(selectedItems);
+    if (newSet.has(itemId)) {
+      newSet.delete(itemId);
     } else {
-      selectedItems.add(itemId);
+      newSet.add(itemId);
     }
-    selectedItems = selectedItems;
+    selectedItems = newSet;
   }
 
   // Content actions
@@ -171,8 +168,9 @@
         await api.deleteVideo(token, item.id);
       }
       await loadDashboardData();
-      selectedItems.delete(item.id);
-      selectedItems = selectedItems;
+      const newSet = new Set(selectedItems);
+      newSet.delete(item.id);
+      selectedItems = newSet;
     } catch (e) {
       console.error('Failed to delete:', e);
       alert($t('common.error') + ': ' + e.message);
@@ -199,8 +197,7 @@
 
       await Promise.all(deletePromises);
       await loadDashboardData();
-      selectedItems.clear();
-      selectedItems = selectedItems;
+      selectedItems = new Set();
     } catch (e) {
       console.error('Failed to bulk delete:', e);
       alert($t('common.error') + ': ' + e.message);
@@ -456,13 +453,13 @@
               class="w-4 h-4 text-teal-600 border-slate-300 rounded focus:ring-teal-500 focus:ring-2"
             />
             <div class="w-8"></div>
-            <div class="w-20">{$t('cms.view.grid')}</div>
+            <div class="w-20"></div>
             <div class="flex-1">{$t('articleEditor.articleTitle')}</div>
-            <div class="w-24">{$t('articleEditor.status')}</div>
+            <div class="w-24 text-center">{$t('articleEditor.status')}</div>
             <div class="w-32">{$t('articleEditor.category')}</div>
             <div class="w-28">{$t('berita.publishedOn')}</div>
             <div class="w-20">{$t('cms.stats.totalViews')}</div>
-            <div class="w-32">{$t('users.actions')}</div>
+            <div class="w-24 text-center">{$t('users.actions')}</div>
           </div>
 
           <!-- List Items -->

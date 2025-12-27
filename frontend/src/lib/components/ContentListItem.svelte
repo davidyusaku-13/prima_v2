@@ -110,7 +110,7 @@
   </div>
 
   <!-- Status Badge -->
-  <div class="flex-shrink-0">
+  <div class="flex-shrink-0 w-24 text-center">
     {#if isDraft}
       <span class="px-2.5 py-1 text-xs font-medium bg-yellow-100 text-yellow-700 rounded-full">
         {$t('articleEditor.draft')}
@@ -142,7 +142,7 @@
   </div>
 
   <!-- Actions -->
-  <div class="flex-shrink-0 flex items-center gap-1">
+  <div class="flex-shrink-0 w-24 flex items-center justify-center gap-1">
     <!-- Toggle Status -->
     {#if type === 'article'}
       <button

@@ -269,16 +269,18 @@ func (cs *ContentStore) CreateCategory(c *gin.Context) {
 
 // Article Handlers
 
-// ListArticles returns published articles, optionally filtered by category
+// ListArticles returns articles, optionally filtered by category
+// Use ?all=true to include drafts (for CMS dashboard)
 func (cs *ContentStore) ListArticles(c *gin.Context) {
 	categoryID := c.Query("category")
+	includeAll := c.Query("all") == "true"
 
 	cs.Articles.Mu.RLock()
 	articles := make([]*models.Article, 0)
 
 	for _, art := range cs.Articles.Articles {
-		// Only show published articles
-		if art.Status != models.ArticleStatusPublished {
+		// Only show published articles unless all=true
+		if !includeAll && art.Status != models.ArticleStatusPublished {
 			continue
 		}
 
