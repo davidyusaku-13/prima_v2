@@ -3,12 +3,10 @@ module github.com/davidyusaku-13/prima_v2
 go 1.25.5
 
 require (
-	github.com/davidyusaku-13/prima_v2/backend/storage v0.0.0
 	github.com/gin-contrib/cors v1.7.6
 	github.com/gin-gonic/gin v1.11.0
+	github.com/golang-jwt/jwt/v5 v5.2.1
 )
-
-replace github.com/davidyusaku-13/prima_v2/backend/storage => ./storage
 
 require (
 	github.com/bytedance/gopkg v0.1.3 // indirect

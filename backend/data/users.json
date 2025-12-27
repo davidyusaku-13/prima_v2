@@ -1,0 +1,10 @@
+{
+  "superadmin": {
+    "createdAt": "2025-12-27T16:12:03+07:00",
+    "fullName": "System Administrator",
+    "id": "superadmin",
+    "password": "GGz3dMl7YKHBBu9xjRCXCmoG4GvviVU9muZdk4qIbq4=",
+    "role": "superadmin",
+    "username": "superadmin"
+  }
+}
