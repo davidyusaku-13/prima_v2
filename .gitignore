@@ -1,0 +1,5 @@
+.bmad-core/
+.claude/
+.github/
+frontend/.env
+backend/.env
