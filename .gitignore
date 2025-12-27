@@ -4,3 +4,4 @@
 frontend/.env
 backend/.env
 node_modules
+CLAUDE.md
