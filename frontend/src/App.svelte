@@ -122,24 +122,19 @@
   });
 
   async function fetchUser() {
-    console.log('[DEBUG] fetchUser called, token:', token ? 'present' : 'missing');
     try {
       const res = await fetch(`${API_URL}/auth/me`, {
         headers: getHeaders()
       });
-      console.log('[DEBUG] fetchUser status:', res.status);
       if (res.ok) {
         const userData = await res.json();
-        console.log('[DEBUG] fetchUser response:', userData);
         user = userData;
-        console.log('[DEBUG] user.role after set:', user.role);
         await loadPatients();
         await loadUsers(); // Load user count on page load
       } else {
         logout();
       }
     } catch (e) {
-      console.log('[DEBUG] fetchUser error:', e);
       logout();
     } finally {
       authLoading = false;
@@ -156,7 +151,6 @@
         body: JSON.stringify(loginForm)
       });
       const data = await res.json();
-      console.log('[DEBUG] login response:', data);
       if (res.ok) {
         token = data.token;
         user = { userId: data.userId, username: data.username, fullName: data.fullName, role: data.role };
