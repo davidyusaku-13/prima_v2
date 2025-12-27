@@ -420,6 +420,7 @@
     if (view === 'users') loadUsers();
     if (view === 'berita-detail' && !currentArticleId) {
       currentView = 'berita';
+      localStorage.setItem('currentView', 'berita');
     }
   }
 
@@ -488,7 +489,7 @@
       </div>
     {:else}
       {#if currentView === 'dashboard'}
-        <DashboardView {patients} onToggleReminder={toggleReminder} />
+        <DashboardView {patients} onToggleReminder={toggleReminder} onViewAllPatients={() => navigateTo('patients')} />
       {:else if currentView === 'patients'}
         <PatientsView
           {patients}
@@ -519,7 +520,7 @@
       {:else if currentView === 'berita-detail'}
         <BeritaDetailView
           articleId={currentArticleId}
-          onBack={() => { currentArticleId = null; localStorage.removeItem('currentArticleId'); currentView = 'berita'; }}
+          onBack={() => { currentArticleId = null; localStorage.removeItem('currentArticleId'); navigateTo('berita'); }}
         />
       {:else if currentView === 'video'}
         <VideoEdukasiView onWatchVideo={watchVideo} />

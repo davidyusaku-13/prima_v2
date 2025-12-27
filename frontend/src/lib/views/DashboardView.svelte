@@ -4,6 +4,7 @@
 
   export let patients = [];
   export let onToggleReminder = () => {};
+  export let onViewAllPatients = () => {};
 
   function formatDate(dateStr) {
     if (!dateStr) return '';
@@ -169,11 +170,9 @@
   <div class="bg-white rounded-xl md:rounded-2xl border border-slate-200 overflow-hidden">
     <div class="px-3 sm:px-4 lg:px-6 py-3 lg:py-4 border-b border-slate-100 flex items-center justify-between">
       <h2 class="text-sm sm:text-base lg:text-lg font-semibold text-slate-900">{$t('dashboard.recentPatients')}</h2>
-      <slot name="viewAllPatients">
-        <button class="text-xs lg:text-sm text-teal-600 hover:text-teal-700 font-medium">
-          {$t('common.viewAll')}
-        </button>
-      </slot>
+      <button onclick={onViewAllPatients} class="text-xs lg:text-sm text-teal-600 hover:text-teal-700 font-medium">
+        {$t('common.viewAll')}
+      </button>
     </div>
     <div class="p-3 sm:p-4 lg:p-6 space-y-2 sm:space-y-3 lg:space-y-4">
       {#if patients.length === 0}
