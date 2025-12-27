@@ -13,7 +13,7 @@
   let users = [];
   let loading = true;
   let sidebarOpen = true;
-  let currentView = 'dashboard';
+  let currentView = localStorage.getItem('currentView') || 'dashboard';
 
   // Auth forms
   let showAuthModal = false;
@@ -391,6 +391,12 @@
     userForm = { role: 'volunteer' };
   }
 
+  function navigateTo(view) {
+    currentView = view;
+    localStorage.setItem('currentView', view);
+    if (view === 'users') loadUsers();
+  }
+
   function openPatientModal(patient = null) {
     editingPatient = patient;
     if (patient) {
@@ -713,7 +719,7 @@
       <!-- Navigation -->
       <nav class="flex-1 px-4 py-6 space-y-1 overflow-y-auto">
         <button
-          onclick={() => currentView = 'dashboard'}
+          onclick={() => navigateTo('dashboard')}
           class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-all duration-200 {currentView === 'dashboard' ? 'bg-teal-50 text-teal-700 font-medium' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'}"
         >
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -722,7 +728,7 @@
           Dashboard
         </button>
         <button
-          onclick={() => currentView = 'patients'}
+          onclick={() => navigateTo('patients')}
           class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-all duration-200 {currentView === 'patients' ? 'bg-teal-50 text-teal-700 font-medium' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'}"
         >
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -733,7 +739,7 @@
         </button>
         {#if user?.role === 'superadmin'}
           <button
-            onclick={() => { currentView = 'users'; loadUsers(); }}
+            onclick={() => navigateTo('users')}
             class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-all duration-200 {currentView === 'users' ? 'bg-purple-50 text-purple-700 font-medium' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'}"
           >
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -923,7 +929,7 @@
             <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden">
               <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
                 <h2 class="text-lg font-semibold text-slate-900">Recent Patients</h2>
-                <button onclick={() => currentView = 'patients'} class="text-sm text-teal-600 hover:text-teal-700 font-medium">View all</button>
+                <button onclick={() => navigateTo('patients')} class="text-sm text-teal-600 hover:text-teal-700 font-medium">View all</button>
               </div>
               <div class="p-6 space-y-4">
                 {#if patients.length === 0}
