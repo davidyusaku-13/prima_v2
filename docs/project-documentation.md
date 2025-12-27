@@ -29,7 +29,9 @@ prima_v2/
 │   ├── .env.example         # Environment variables template
 │   ├── .env                 # Actual environment variables (gitignored)
 │   ├── data/
-│   │   └── patients.json    # Patient data persistence
+│   │   ├── patients.json    # Patient data persistence
+│   │   ├── users.json       # User accounts persistence
+│   │   └── jwt_secret.txt   # JWT signing key
 │   ├── go.mod               # Go module definition
 │   └── go.sum               # Go dependencies
 ├── frontend/
@@ -43,7 +45,8 @@ prima_v2/
 │   ├── package.json         # Frontend dependencies
 │   └── vite.config.js       # Vite configuration
 ├── docs/
-│   └── project-documentation.md
+│   ├── project-documentation.md
+│   └── brownfield-architecture.md
 └── CLAUDE.md                # Claude Code guidance
 ```
 
@@ -124,6 +127,13 @@ Access the application at: `http://localhost:5173`
 |--------|----------|----------|
 | GET | `/api/health` | `{"status": "ok"}` |
 
+### Authentication
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/api/auth/register` | Register new user (role: volunteer) |
+| POST | `/api/auth/login` | Login, returns JWT token |
+| GET | `/api/auth/me` | Get current user info |
+
 ### Patients
 | Method | Endpoint | Description |
 |--------|----------|-------------|
@@ -141,7 +151,26 @@ Access the application at: `http://localhost:5173`
 | POST | `/api/patients/:id/reminders/:reminderId/toggle` | Toggle completion |
 | DELETE | `/api/patients/:id/reminders/:reminderId` | Delete a reminder |
 
+### User Management (Superadmin Only)
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/users` | List all users |
+| PUT | `/api/users/:id/role` | Update user role |
+| DELETE | `/api/users/:id` | Delete a user |
+
 ## Data Models
+
+### User
+```json
+{
+  "id": "string",
+  "username": "string (unique)",
+  "fullName": "string",
+  "password": "string (SHA256 hashed)",
+  "role": "superadmin | admin | volunteer",
+  "createdAt": "RFC3339 timestamp"
+}
+```
 
 ### Patient
 ```json
@@ -210,6 +239,22 @@ Access the application at: `http://localhost:5173`
 - Message includes all reminder details
 - Only sends once per reminder occurrence
 
+### Role-Based Access Control (RBAC)
+Three user roles with different permission levels:
+
+| Role | Permissions |
+|------|-------------|
+| **superadmin** | Full access, user management, all patients |
+| **admin** | View all patients, cannot manage users |
+| **volunteer** | Only see patients they created |
+
+### User Management (Superadmin Only)
+- View all registered users in a table
+- Add new users with automatic volunteer role
+- Edit user roles (admin or volunteer)
+- Delete users (cannot delete yourself)
+- User avatar with initials, role badges, creation date
+
 ## UI Components
 
 ### Layout
@@ -218,8 +263,11 @@ Access the application at: `http://localhost:5173`
 - **Main Content**: Dynamic content based on current view
 
 ### Modals
-- **Patient Modal**: Add/Edit patient form (phone required)
+- **Auth Modal**: Login/Register forms with password strength indicator
+- **Patient Modal**: Add/Edit patient form (name, phone required)
 - **Reminder Modal**: Create/Edit reminder form with priority and recurrence options
+- **User Modal**: Add new user or edit user role (superadmin only)
+- **Confirm Modal**: Custom dialog for delete confirmations with warning icon
 
 ## Configuration
 
@@ -270,8 +318,6 @@ Data is persisted to `data/patients.json` as JSON. The backend:
 ## Future Enhancements
 
 Potential improvements for the application:
-- User authentication and login
-- Multiple volunteer accounts
 - Patient categories or groups
 - Bulk operations
 - Data export functionality (CSV/PDF)
@@ -279,6 +325,9 @@ Potential improvements for the application:
 - Offline support with service workers
 - WhatsApp message status tracking
 - Customizable notification templates
+- Two-factor authentication
+- Audit logging
+- Patient notes history/versions
 
 ## License
 
