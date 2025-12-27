@@ -789,25 +789,24 @@
   </div>
 <!-- Main Dashboard -->
 {:else}
-<div class="min-h-screen bg-slate-50 flex">
   <!-- Sidebar (Desktop Only) -->
-  <aside class="hidden lg:flex fixed z-40 bg-white border-r border-slate-200 lg:inset-y-0 lg:left-0 lg:w-64">
-    <div class="flex flex-col h-full">
-      <!-- Logo -->
-      <div class="flex items-center gap-3 px-6 py-5 border-b border-slate-100">
-        <div class="w-10 h-10 bg-teal-600 rounded-xl flex items-center justify-center">
-          <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-          </svg>
-        </div>
-        <div>
-          <h1 class="font-bold text-slate-900">{$t('app.name')}</h1>
-          <p class="text-xs text-slate-500">{$t('navigation.volunteerDashboard')}</p>
-        </div>
+  <aside class="hidden lg:flex flex-col w-64 bg-white border-r border-slate-200 fixed inset-y-0 left-0 z-30">
+    <!-- Logo -->
+    <div class="flex items-center gap-3 px-6 py-5 border-b border-slate-100">
+      <div class="w-10 h-10 bg-teal-600 rounded-xl flex items-center justify-center">
+        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+        </svg>
       </div>
+      <div>
+        <h1 class="font-bold text-slate-900">{$t('app.name')}</h1>
+        <p class="text-xs text-slate-500">{$t('navigation.volunteerDashboard')}</p>
+      </div>
+    </div>
 
-      <!-- Navigation -->
-      <nav class="flex-1 px-4 py-6 space-y-1 overflow-y-auto">
+    <!-- Navigation -->
+    <nav class="flex-1 py-4 overflow-y-auto">
+      <div class="px-4 space-y-1">
         <button onclick={() => navigateTo('dashboard')} class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-all duration-200 {currentView === 'dashboard' ? 'bg-teal-50 text-teal-700 font-medium' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'}">
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
@@ -830,39 +829,38 @@
             <span class="ml-auto bg-purple-100 text-purple-700 text-xs font-medium px-2 py-0.5 rounded-full">{users.length}</span>
           </button>
         {/if}
-      </nav>
+      </div>
+    </nav>
 
-      <!-- User section -->
-      <div class="p-4 border-t border-slate-100">
-        <!-- Language Switcher -->
-        <div class="mb-3 px-4 py-2">
-          <div class="flex items-center gap-1 bg-slate-100 rounded-lg p-1">
-            <button onclick={() => setLocale('en')} class="flex-1 py-1.5 text-xs font-medium rounded-md transition-colors duration-200 {$locale === 'en' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900'}">EN</button>
-            <button onclick={() => setLocale('id')} class="flex-1 py-1.5 text-xs font-medium rounded-md transition-colors duration-200 {$locale === 'id' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900'}">ID</button>
+    <!-- User Section -->
+    <div class="p-4 border-t border-slate-100">
+      <!-- Language Switcher -->
+      <div class="mb-3 px-4 py-2">
+        <div class="flex items-center gap-1 bg-slate-100 rounded-lg p-1">
+          <button onclick={() => setLocale('en')} class="flex-1 py-1.5 text-xs font-medium rounded-md transition-colors {$locale === 'en' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900'}">EN</button>
+          <button onclick={() => setLocale('id')} class="flex-1 py-1.5 text-xs font-medium rounded-md transition-colors {$locale === 'id' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900'}">ID</button>
+        </div>
+      </div>
+      <div class="flex items-center gap-3 px-4 py-3 rounded-xl bg-slate-50">
+        <div class="w-10 h-10 bg-teal-600 rounded-full flex items-center justify-center text-white font-semibold">{user?.fullName?.charAt(0)?.toUpperCase() || user?.username?.charAt(0)?.toUpperCase() || 'U'}</div>
+        <div class="flex-1 min-w-0">
+          <p class="text-sm font-medium text-slate-900 truncate">{user?.fullName || user?.username}</p>
+          <div class="flex items-center gap-2">
+            <p class="text-xs text-slate-500 truncate">@{user?.username}</p>
+            {#if user?.role}<span class="px-1.5 py-0.5 text-xs font-medium rounded {user?.role === 'superadmin' ? 'bg-purple-100 text-purple-700' : user?.role === 'admin' ? 'bg-blue-100 text-blue-700' : 'bg-slate-200 text-slate-600'}">{user?.role}</span>{/if}
           </div>
         </div>
-        <div class="flex items-center gap-3 px-4 py-3 rounded-xl bg-slate-50">
-          <div class="w-10 h-10 bg-teal-600 rounded-full flex items-center justify-center text-white font-semibold">{user?.fullName?.charAt(0)?.toUpperCase() || user?.username?.charAt(0)?.toUpperCase() || 'U'}</div>
-          <div class="flex-1 min-w-0">
-            <p class="text-sm font-medium text-slate-900 truncate">{user?.fullName || user?.username}</p>
-            <div class="flex items-center gap-2">
-              <p class="text-xs text-slate-500 truncate">@{user?.username}</p>
-              {#if user?.role}<span class="px-1.5 py-0.5 text-xs font-medium rounded {user?.role === 'superadmin' ? 'bg-purple-100 text-purple-700' : user?.role === 'admin' ? 'bg-blue-100 text-blue-700' : 'bg-slate-200 text-slate-600'}">{user?.role}</span>{/if}
-            </div>
-          </div>
-          <button onclick={logout} class="p-2 text-slate-400 hover:text-red-600 transition-colors duration-200" title={$t('auth.logout')}>
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-            </svg>
-          </button>
-        </div>
+        <button onclick={logout} class="p-2 text-slate-400 hover:text-red-600 transition-colors" title={$t('auth.logout')}>
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+          </svg>
+        </button>
       </div>
     </div>
   </aside>
 
-  <!-- Main content -->
-  <div class="flex-1 flex flex-col min-h-screen pb-16 lg:pb-6">
-    <main class="flex-1 p-4 lg:p-6 overflow-y-auto">
+  <!-- Main Content -->
+  <main class="flex-1 lg:ml-64 p-4 lg:p-6 min-h-screen pb-20 lg:pb-6">
       {#if loading}
         <div class="flex items-center justify-center h-64">
           <div class="animate-spin w-10 h-10 border-4 border-teal-600 border-t-transparent rounded-full"></div>
@@ -872,7 +870,7 @@
         {#if currentView === 'dashboard'}
           <!-- Header -->
           <header class="sticky top-0 z-10 bg-white/80 backdrop-blur-md border-b border-slate-200 mb-6">
-            <div class="flex flex-col sm:flex-row sm:items-center justify-between px-2 py-4">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between py-4">
               <div class="flex items-center gap-3">
                 <h1 class="text-xl font-bold text-slate-900">{$t('dashboard.title')}</h1>
                 <span class="text-slate-500 text-sm hidden sm:inline">{new Date().toLocaleDateString($locale, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</span>
@@ -1008,7 +1006,7 @@
         {#if currentView === 'patients'}
           <!-- Header -->
           <header class="sticky top-0 z-10 bg-white/80 backdrop-blur-md border-b border-slate-200 mb-6">
-            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 px-2 py-4">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 py-4">
               <div class="flex flex-col sm:flex-row sm:items-center gap-4">
                 <h1 class="text-xl font-bold text-slate-900">{$t('patients.title')}</h1>
                 <div class="relative w-full sm:w-64">
@@ -1180,7 +1178,7 @@
         {#if currentView === 'users' && user?.role === 'superadmin'}
           <!-- Header -->
           <header class="sticky top-0 z-10 bg-white/80 backdrop-blur-md border-b border-slate-200 mb-6">
-            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 px-2 py-4">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 py-4">
               <div class="flex items-center gap-3">
                 <h1 class="text-xl font-bold text-slate-900">{$t('users.title')}</h1>
               </div>
@@ -1322,7 +1320,6 @@
         </button>
       </div>
     </nav>
-  </div>
 
   <!-- Profile Modal (Mobile) -->
   {#if showProfileModal}
@@ -1744,5 +1741,4 @@
       </div>
     </div>
   {/if}
-</div>
 {/if}
