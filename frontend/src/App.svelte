@@ -72,8 +72,11 @@
   let showUserModal = false;
   let editingUser = null;
   let userForm = {
-    role: 'volunteer'
+    role: 'volunteer',
+    username: '',
+    password: ''
   };
+  let userFormLoading = false;
 
   // Reminder form
   let reminderForm = {
@@ -201,6 +204,31 @@
       authError = 'Connection error. Please check your internet connection.';
     } finally {
       authLoading = false;
+    }
+  }
+
+  async function registerUser() {
+    userFormLoading = true;
+    try {
+      const res = await fetch(`${API_URL}/auth/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          username: userForm.username,
+          password: userForm.password
+        })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        closeUserModal();
+        loadUsers();
+      } else {
+        alert(data.error || 'Failed to create user');
+      }
+    } catch (e) {
+      alert('Connection error. Please try again.');
+    } finally {
+      userFormLoading = false;
     }
   }
 
@@ -379,16 +407,20 @@
     }
   }
 
-  function openUserModal(userToEdit) {
+  function openUserModal(userToEdit = null) {
     editingUser = userToEdit;
-    userForm = { role: userToEdit.role };
+    if (userToEdit) {
+      userForm = { role: userToEdit.role, username: '', password: '' };
+    } else {
+      userForm = { role: 'volunteer', username: '', password: '' };
+    }
     showUserModal = true;
   }
 
   function closeUserModal() {
     showUserModal = false;
     editingUser = null;
-    userForm = { role: 'volunteer' };
+    userForm = { role: 'volunteer', username: '', password: '' };
   }
 
   function navigateTo(view) {
@@ -787,44 +819,6 @@
 
   <!-- Main content -->
   <div class="flex-1 flex flex-col min-h-screen">
-    <!-- Header -->
-    <header class="sticky top-0 z-20 bg-white/80 backdrop-blur-md border-b border-slate-200">
-      <div class="flex items-center justify-between px-6 py-4">
-        <div class="flex items-center gap-4">
-          <button
-            onclick={() => sidebarOpen = !sidebarOpen}
-            class="lg:hidden p-2 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg"
-            aria-label="Toggle sidebar"
-          >
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
-            </svg>
-          </button>
-          <div class="relative">
-            <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-            </svg>
-            <input
-              type="text"
-              bind:value={searchQuery}
-              placeholder="Search patients..."
-              class="pl-10 pr-4 py-2.5 w-64 bg-slate-100 border-0 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500 focus:bg-white transition-all duration-200"
-            />
-          </div>
-        </div>
-        <button
-          onclick={() => openPatientModal()}
-          class="flex items-center gap-2 px-5 py-2.5 bg-teal-600 text-white font-medium rounded-xl hover:bg-teal-700 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200"
-        >
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-          </svg>
-          Add Patient
-        </button>
-      </div>
-    </header>
-
-    <!-- Page content -->
     <main class="flex-1 p-6 overflow-y-auto">
       {#if loading}
         <div class="flex items-center justify-center h-64">
@@ -833,6 +827,16 @@
       {:else}
         <!-- Dashboard View -->
         {#if currentView === 'dashboard'}
+          <!-- Header -->
+          <header class="sticky top-0 z-10 bg-white/80 backdrop-blur-md border-b border-slate-200 mb-6">
+            <div class="flex items-center justify-between px-2">
+              <div class="flex items-center gap-3">
+                <h1 class="text-xl font-bold text-slate-900">Dashboard</h1>
+                <span class="text-slate-500 text-sm">{new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</span>
+              </div>
+            </div>
+          </header>
+
           <!-- Stats -->
           <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
             <div class="bg-white rounded-2xl p-6 border border-slate-200 hover:shadow-lg transition-shadow duration-200">
@@ -958,6 +962,35 @@
 
         <!-- Patients View -->
         {#if currentView === 'patients'}
+          <!-- Header -->
+          <header class="sticky top-0 z-10 bg-white/80 backdrop-blur-md border-b border-slate-200 mb-6">
+            <div class="flex items-center justify-between px-2 py-4">
+              <div class="flex items-center gap-4">
+                <h1 class="text-xl font-bold text-slate-900">Patients</h1>
+                <div class="relative">
+                  <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  </svg>
+                  <input
+                    type="text"
+                    bind:value={searchQuery}
+                    placeholder="Search patients..."
+                    class="pl-10 pr-4 py-2.5 w-64 bg-slate-100 border-0 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500 focus:bg-white transition-all duration-200"
+                  />
+                </div>
+              </div>
+              <button
+                onclick={() => openPatientModal()}
+                class="flex items-center gap-2 px-5 py-2.5 bg-teal-600 text-white font-medium rounded-xl hover:bg-teal-700 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200"
+              >
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                </svg>
+                Add Patient
+              </button>
+            </div>
+          </header>
+
           {#if filteredPatients.length === 0}
             <div class="bg-white rounded-2xl border border-slate-200 p-12 text-center">
               <div class="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -1099,15 +1132,36 @@
 
         <!-- Users View (Superadmin only) -->
         {#if currentView === 'users' && user?.role === 'superadmin'}
-          <div class="bg-white rounded-2xl border border-slate-200">
-            <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
-              <h2 class="text-lg font-semibold text-slate-900">User Management</h2>
-              <button onclick={loadUsers} class="p-2 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition-colors" title="Refresh">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                </svg>
-              </button>
+          <!-- Header -->
+          <header class="sticky top-0 z-10 bg-white/80 backdrop-blur-md border-b border-slate-200 mb-6">
+            <div class="flex items-center justify-between px-2 py-4">
+              <div class="flex items-center gap-3">
+                <h1 class="text-xl font-bold text-slate-900">User Management</h1>
+              </div>
+              <div class="flex items-center gap-2">
+                <button
+                  onclick={loadUsers}
+                  class="p-2 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition-colors"
+                  title="Refresh"
+                >
+                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                </button>
+                <button
+                  onclick={() => openUserModal()}
+                  class="flex items-center gap-2 px-5 py-2.5 bg-teal-600 text-white font-medium rounded-xl hover:bg-teal-700 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200"
+                >
+                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                  </svg>
+                  Add User
+                </button>
+              </div>
             </div>
+          </header>
+
+          <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden">
             <div class="overflow-x-auto">
               {#if users.length === 0}
                 <p class="text-slate-500 text-center py-12">No users found</p>
@@ -1412,7 +1466,7 @@
         aria-label="Close modal"
       ></div>
       <div class="relative bg-white rounded-2xl shadow-xl w-full max-w-sm p-6" onclick={(e) => e.stopPropagation()} onkeydown={(e) => e.stopPropagation()} role="dialog" aria-modal="true" tabindex="-1">
-        <h2 class="text-xl font-semibold text-slate-900 mb-6">Edit User Role</h2>
+        <h2 class="text-xl font-semibold text-slate-900 mb-6">{editingUser ? 'Edit User Role' : 'Add New User'}</h2>
         {#if editingUser}
           <div class="mb-6">
             <div class="flex items-center gap-3 p-3 bg-slate-50 rounded-xl mb-4">
@@ -1460,6 +1514,53 @@
               </div>
             </form>
           </div>
+        {:else}
+          <form onsubmit={(e) => { e.preventDefault(); registerUser(); }} class="space-y-4">
+            <div>
+              <label for="newUsername" class="block text-sm font-medium text-slate-700 mb-1">Username</label>
+              <input
+                type="text"
+                id="newUsername"
+                bind:value={userForm.username}
+                placeholder="Enter username"
+                minlength="3"
+                maxlength="30"
+                required
+                class="w-full px-4 py-2.5 bg-slate-100 border-0 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500 focus:bg-white transition-all duration-200"
+              />
+            </div>
+            <div>
+              <label for="newPassword" class="block text-sm font-medium text-slate-700 mb-1">Password</label>
+              <input
+                type="password"
+                id="newPassword"
+                bind:value={userForm.password}
+                placeholder="Enter password (min 6 chars)"
+                minlength="6"
+                required
+                class="w-full px-4 py-2.5 bg-slate-100 border-0 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500 focus:bg-white transition-all duration-200"
+              />
+            </div>
+            <div class="flex gap-3 pt-4">
+              <button
+                type="button"
+                onclick={closeUserModal}
+                class="flex-1 px-4 py-2.5 border border-slate-200 text-slate-700 font-medium rounded-xl hover:bg-slate-50 transition-colors duration-200"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={userFormLoading}
+                class="flex-1 px-4 py-2.5 bg-teal-600 text-white font-medium rounded-xl hover:bg-teal-700 disabled:opacity-50 transition-colors duration-200 flex items-center justify-center gap-2"
+              >
+                {#if userFormLoading}
+                  <div class="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                {/if}
+                Add User
+              </button>
+            </div>
+          </form>
         {/if}
       </div>
     </div>
