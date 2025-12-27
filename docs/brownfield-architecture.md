@@ -1,12 +1,12 @@
-# CareKeeper Brownfield Architecture Document
+# PRIMA Brownfield Architecture Document
 
 ## Introduction
 
-This document captures the current state of the CareKeeper codebase, a healthcare volunteer dashboard with role-based access control (RBAC), WhatsApp notification capabilities, and a public-facing health education content management system. It serves as a reference for AI agents working on enhancements, bug fixes, or feature development.
+This document captures the current state of the PRIMA codebase, a healthcare volunteer dashboard with role-based access control (RBAC), WhatsApp notification capabilities, and a public-facing health education content management system. It serves as a reference for AI agents working on enhancements, bug fixes, or feature development.
 
 ### Document Scope
 
-Comprehensive documentation of the CareKeeper healthcare volunteer management and content system.
+Comprehensive documentation of the PRIMA healthcare volunteer management and content system.
 
 ### Change Log
 
@@ -87,7 +87,7 @@ prima_v2/
 
 ### Technical Summary
 
-CareKeeper is a healthcare volunteer management and health education platform with the following capabilities:
+PRIMA is a healthcare volunteer management and health education platform with the following capabilities:
 
 1. **Authentication**: JWT-based auth with registration/login
 2. **RBAC**: Three roles (superadmin, admin, volunteer) with different permission levels
@@ -720,7 +720,7 @@ Frontend runs on `http://localhost:5173`
 ### Build and Deployment
 
 - **Frontend Build**: `bun run build` (outputs to `frontend/dist/`)
-- **Backend Build**: `go build -o carekeeper main.go`
+- **Backend Build**: `go build -o prima main.go`
 - **No CI/CD**: Manual deployment required
 - **No Docker**: No containerization configured
 
@@ -785,7 +785,7 @@ go test    # No test files
 cd backend && go run main.go
 
 # Build backend binary
-cd backend && go build -o carekeeper main.go
+cd backend && go build -o prima main.go
 
 # Check Go syntax
 cd backend && go vet

@@ -1,14 +1,14 @@
 # Brainstorming Session Results
 
 **Date:** 2025-12-27
-**Project:** CareKeeper - Healthcare Volunteer Dashboard Expansion
+**Project:** PRIMA - Healthcare Volunteer Dashboard Expansion
 **Topic:** Berita (News), Video Edukasi (Educational Videos), and CMS
 
 ---
 
 ## Executive Summary
 
-This brainstorming session explored the addition of new public-facing features to CareKeeper: a health news section (Berita), an educational video gallery (Video Edukasi), and a content management system (CMS) for administrators.
+This brainstorming session explored the addition of new public-facing features to PRIMA: a health news section (Berita), an educational video gallery (Video Edukasi), and a content management system (CMS) for administrators.
 
 ### Session Goals
 - Define features for Berita and Video Edukasi pages

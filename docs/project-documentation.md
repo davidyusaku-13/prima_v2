@@ -1,10 +1,10 @@
-# CareKeeper - Healthcare Volunteer Dashboard
+# PRIMA - Healthcare Volunteer Dashboard
 
 A full-stack web application for healthcare volunteers to manage patients and their care reminders with WhatsApp notifications.
 
 ## Overview
 
-CareKeeper is a volunteer management dashboard designed to help healthcare volunteers track patients and manage their care reminders. The application provides a clean, intuitive interface for maintaining patient records and scheduling reminders with automatic WhatsApp notifications via GOWA.
+PRIMA is a volunteer management dashboard designed to help healthcare volunteers track patients and manage their care reminders. The application provides a clean, intuitive interface for maintaining patient records and scheduling reminders with automatic WhatsApp notifications via GOWA.
 
 ## Tech Stack
 
