@@ -45,7 +45,10 @@
     "confirm": "Konfirmasi",
     "viewAll": "Lihat semua",
     "refresh": "Segarkan",
-    "you": "Anda"
+    "you": "Anda",
+    "more": "Lainnya",
+    "profile": "Profil",
+    "language": "Bahasa"
   },
   "navigation": {
     "dashboard": "Beranda",

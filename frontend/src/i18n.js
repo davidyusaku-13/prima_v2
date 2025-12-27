@@ -18,7 +18,7 @@ const en = {
     save: 'Save', cancel: 'Cancel', delete: 'Delete', edit: 'Edit', add: 'Add', close: 'Close',
     loading: 'Loading...', search: 'Search', searchPlaceholder: 'Search...', noResults: 'No results found',
     required: 'Required', optional: 'Optional', yes: 'Yes', no: 'No', confirm: 'Confirm',
-    viewAll: 'View all', refresh: 'Refresh', you: 'You'
+    viewAll: 'View all', refresh: 'Refresh', you: 'You', more: 'More', profile: 'Profile', language: 'Language'
   },
   navigation: { dashboard: 'Dashboard', patients: 'Patients', users: 'Users', volunteerDashboard: 'Volunteer Dashboard' },
   dashboard: {
@@ -68,7 +68,7 @@ const id = {
     save: 'Simpan', cancel: 'Batal', delete: 'Hapus', edit: 'Ubah', add: 'Tambah', close: 'Tutup',
     loading: 'Memuat...', search: 'Cari', searchPlaceholder: 'Cari...', noResults: 'Tidak ada hasil',
     required: 'Wajib diisi', optional: 'Opsional', yes: 'Ya', no: 'Tidak', confirm: 'Konfirmasi',
-    viewAll: 'Lihat semua', refresh: 'Segarkan', you: 'Anda'
+    viewAll: 'Lihat semua', refresh: 'Segarkan', you: 'Anda', more: 'Lainnya', profile: 'Profil', language: 'Bahasa'
   },
   navigation: { dashboard: 'Beranda', patients: 'Pasien', users: 'Pengguna', volunteerDashboard: 'Dasbor Relawan' },
   dashboard: {

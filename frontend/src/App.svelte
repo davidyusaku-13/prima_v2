@@ -18,11 +18,12 @@
   let patients = [];
   let users = [];
   let loading = true;
-  let sidebarOpen = true;
+  let sidebarOpen = false;
   let currentView = localStorage.getItem('currentView') || 'dashboard';
 
   // Auth forms
   let showAuthModal = false;
+  let showProfileModal = false;
   let authMode = 'login'; // 'login' or 'register'
   let authError = '';
 
@@ -284,6 +285,10 @@
     authError = '';
     loginForm = { username: '', password: '' };
     registerForm = { username: '', password: '', confirmPassword: '', fullName: '' };
+  }
+
+  function closeProfileModal() {
+    showProfileModal = false;
   }
 
   async function loadPatients() {
@@ -600,14 +605,14 @@
   <div class="min-h-screen bg-slate-50 flex items-center justify-center p-4">
     <div class="w-full max-w-md">
       <!-- Logo -->
-      <div class="text-center mb-8">
-        <div class="w-16 h-16 bg-teal-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
-          <svg class="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <div class="text-center mb-6 sm:mb-8">
+        <div class="w-14 h-14 sm:w-16 sm:h-16 bg-teal-600 rounded-xl sm:rounded-2xl flex items-center justify-center mx-auto mb-3 sm:mb-4">
+          <svg class="w-8 h-8 sm:w-10 sm:h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
           </svg>
         </div>
-        <h1 class="text-2xl font-bold text-slate-900">{$t('app.name')}</h1>
-        <p class="text-slate-500 mt-1">{$t('app.tagline')}</p>
+        <h1 class="text-xl sm:text-2xl font-bold text-slate-900">{$t('app.name')}</h1>
+        <p class="text-slate-500 mt-1 text-sm sm:text-base">{$t('app.tagline')}</p>
       </div>
 
       <!-- Language Switcher on Login Screen -->
@@ -629,8 +634,8 @@
       </div>
 
       <!-- Auth Card -->
-      <div class="bg-white rounded-2xl shadow-xl p-8">
-        <div class="flex gap-2 mb-6">
+      <div class="bg-white rounded-xl sm:rounded-2xl shadow-xl p-6 sm:p-8">
+        <div class="flex gap-2 mb-4 sm:mb-6">
           <button
             onclick={() => authMode = 'login'}
             class="flex-1 py-2.5 rounded-xl font-medium transition-colors duration-200 {authMode === 'login' ? 'bg-teal-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}"
@@ -785,8 +790,8 @@
 <!-- Main Dashboard -->
 {:else}
 <div class="min-h-screen bg-slate-50 flex">
-  <!-- Sidebar -->
-  <aside class="fixed inset-y-0 left-0 z-30 w-64 bg-white border-r border-slate-200 transform transition-transform duration-300 {sidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:relative lg:translate-x-0">
+  <!-- Sidebar (Desktop Only) -->
+  <aside class="hidden lg:flex fixed z-40 bg-white border-r border-slate-200 lg:inset-y-0 lg:left-0 lg:w-64">
     <div class="flex flex-col h-full">
       <!-- Logo -->
       <div class="flex items-center gap-3 px-6 py-5 border-b border-slate-100">
@@ -803,19 +808,13 @@
 
       <!-- Navigation -->
       <nav class="flex-1 px-4 py-6 space-y-1 overflow-y-auto">
-        <button
-          onclick={() => navigateTo('dashboard')}
-          class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-all duration-200 {currentView === 'dashboard' ? 'bg-teal-50 text-teal-700 font-medium' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'}"
-        >
+        <button onclick={() => navigateTo('dashboard')} class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-all duration-200 {currentView === 'dashboard' ? 'bg-teal-50 text-teal-700 font-medium' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'}">
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
           </svg>
           {$t('navigation.dashboard')}
         </button>
-        <button
-          onclick={() => navigateTo('patients')}
-          class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-all duration-200 {currentView === 'patients' ? 'bg-teal-50 text-teal-700 font-medium' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'}"
-        >
+        <button onclick={() => navigateTo('patients')} class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-all duration-200 {currentView === 'patients' ? 'bg-teal-50 text-teal-700 font-medium' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'}">
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
           </svg>
@@ -823,10 +822,7 @@
           <span class="ml-auto bg-slate-100 text-slate-600 text-xs font-medium px-2 py-0.5 rounded-full">{stats.totalPatients}</span>
         </button>
         {#if user?.role === 'superadmin'}
-          <button
-            onclick={() => navigateTo('users')}
-            class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-all duration-200 {currentView === 'users' ? 'bg-purple-50 text-purple-700 font-medium' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'}"
-          >
+          <button onclick={() => navigateTo('users')} class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-all duration-200 {currentView === 'users' ? 'bg-purple-50 text-purple-700 font-medium' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'}">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
             </svg>
@@ -841,43 +837,20 @@
         <!-- Language Switcher -->
         <div class="mb-3 px-4 py-2">
           <div class="flex items-center gap-1 bg-slate-100 rounded-lg p-1">
-            <button
-              onclick={() => setLocale('en')}
-              class="flex-1 py-1.5 text-xs font-medium rounded-md transition-colors duration-200 {$locale === 'en' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900'}"
-            >
-              EN
-            </button>
-            <button
-              onclick={() => setLocale('id')}
-              class="flex-1 py-1.5 text-xs font-medium rounded-md transition-colors duration-200 {$locale === 'id' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900'}"
-            >
-              ID
-            </button>
+            <button onclick={() => setLocale('en')} class="flex-1 py-1.5 text-xs font-medium rounded-md transition-colors duration-200 {$locale === 'en' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900'}">EN</button>
+            <button onclick={() => setLocale('id')} class="flex-1 py-1.5 text-xs font-medium rounded-md transition-colors duration-200 {$locale === 'id' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900'}">ID</button>
           </div>
         </div>
         <div class="flex items-center gap-3 px-4 py-3 rounded-xl bg-slate-50">
-          <div class="w-10 h-10 bg-teal-600 rounded-full flex items-center justify-center text-white font-semibold">
-            {user?.fullName?.charAt(0)?.toUpperCase() || user?.username?.charAt(0)?.toUpperCase() || 'U'}
-          </div>
+          <div class="w-10 h-10 bg-teal-600 rounded-full flex items-center justify-center text-white font-semibold">{user?.fullName?.charAt(0)?.toUpperCase() || user?.username?.charAt(0)?.toUpperCase() || 'U'}</div>
           <div class="flex-1 min-w-0">
             <p class="text-sm font-medium text-slate-900 truncate">{user?.fullName || user?.username}</p>
             <div class="flex items-center gap-2">
               <p class="text-xs text-slate-500 truncate">@{user?.username}</p>
-              {#if user?.role}
-                <span class="px-1.5 py-0.5 text-xs font-medium rounded
-                  {user?.role === 'superadmin' ? 'bg-purple-100 text-purple-700' :
-                   user?.role === 'admin' ? 'bg-blue-100 text-blue-700' :
-                   'bg-slate-200 text-slate-600'}">
-                  {user?.role}
-                </span>
-              {/if}
+              {#if user?.role}<span class="px-1.5 py-0.5 text-xs font-medium rounded {user?.role === 'superadmin' ? 'bg-purple-100 text-purple-700' : user?.role === 'admin' ? 'bg-blue-100 text-blue-700' : 'bg-slate-200 text-slate-600'}">{user?.role}</span>{/if}
             </div>
           </div>
-          <button
-            onclick={logout}
-            class="p-2 text-slate-400 hover:text-red-600 transition-colors duration-200"
-            title={$t('auth.logout')}
-          >
+          <button onclick={logout} class="p-2 text-slate-400 hover:text-red-600 transition-colors duration-200" title={$t('auth.logout')}>
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
             </svg>
@@ -888,8 +861,8 @@
   </aside>
 
   <!-- Main content -->
-  <div class="flex-1 flex flex-col min-h-screen">
-    <main class="flex-1 p-6 overflow-y-auto">
+  <div class="flex-1 flex flex-col min-h-screen pb-16 lg:pb-6">
+    <main class="flex-1 p-4 lg:p-6 overflow-y-auto">
       {#if loading}
         <div class="flex items-center justify-center h-64">
           <div class="animate-spin w-10 h-10 border-4 border-teal-600 border-t-transparent rounded-full"></div>
@@ -899,77 +872,78 @@
         {#if currentView === 'dashboard'}
           <!-- Header -->
           <header class="sticky top-0 z-10 bg-white/80 backdrop-blur-md border-b border-slate-200 mb-6">
-            <div class="flex items-center justify-between px-2">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between px-2 py-4">
               <div class="flex items-center gap-3">
                 <h1 class="text-xl font-bold text-slate-900">{$t('dashboard.title')}</h1>
-                <span class="text-slate-500 text-sm">{new Date().toLocaleDateString($locale, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</span>
+                <span class="text-slate-500 text-sm hidden sm:inline">{new Date().toLocaleDateString($locale, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</span>
               </div>
+              <span class="text-slate-500 text-sm sm:hidden">{new Date().toLocaleDateString($locale, { weekday: 'short', month: 'short', day: 'numeric' })}</span>
             </div>
           </header>
 
           <!-- Stats -->
-          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            <div class="bg-white rounded-2xl p-6 border border-slate-200 hover:shadow-lg transition-shadow duration-200">
-              <div class="flex items-center justify-between mb-4">
-                <div class="w-12 h-12 bg-teal-100 rounded-xl flex items-center justify-center">
-                  <svg class="w-6 h-6 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6 mb-8">
+            <div class="bg-white rounded-xl sm:rounded-2xl p-4 sm:p-6 border border-slate-200 hover:shadow-lg transition-shadow duration-200">
+              <div class="flex items-center justify-between mb-3 sm:mb-4">
+                <div class="w-10 h-10 sm:w-12 sm:h-12 bg-teal-100 rounded-xl flex items-center justify-center">
+                  <svg class="w-5 h-5 sm:w-6 sm:h-6 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                   </svg>
                 </div>
               </div>
-              <div class="text-3xl font-bold text-slate-900 mb-1">{stats.totalPatients}</div>
-              <div class="text-slate-500 font-medium">{$t('dashboard.totalPatients')}</div>
+              <div class="text-2xl sm:text-3xl font-bold text-slate-900 mb-1">{stats.totalPatients}</div>
+              <div class="text-slate-500 font-medium text-xs sm:text-base">{$t('dashboard.totalPatients')}</div>
             </div>
 
-            <div class="bg-white rounded-2xl p-6 border border-slate-200 hover:shadow-lg transition-shadow duration-200">
-              <div class="flex items-center justify-between mb-4">
-                <div class="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
-                  <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div class="bg-white rounded-xl sm:rounded-2xl p-4 sm:p-6 border border-slate-200 hover:shadow-lg transition-shadow duration-200">
+              <div class="flex items-center justify-between mb-3 sm:mb-4">
+                <div class="w-10 h-10 sm:w-12 sm:h-12 bg-blue-100 rounded-xl flex items-center justify-center">
+                  <svg class="w-5 h-5 sm:w-6 sm:h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
                   </svg>
                 </div>
               </div>
-              <div class="text-3xl font-bold text-slate-900 mb-1">{stats.totalReminders}</div>
-              <div class="text-slate-500 font-medium">{$t('dashboard.totalReminders')}</div>
+              <div class="text-2xl sm:text-3xl font-bold text-slate-900 mb-1">{stats.totalReminders}</div>
+              <div class="text-slate-500 font-medium text-xs sm:text-base">{$t('dashboard.totalReminders')}</div>
             </div>
 
-            <div class="bg-white rounded-2xl p-6 border border-slate-200 hover:shadow-lg transition-shadow duration-200">
-              <div class="flex items-center justify-between mb-4">
-                <div class="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
-                  <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div class="bg-white rounded-xl sm:rounded-2xl p-4 sm:p-6 border border-slate-200 hover:shadow-lg transition-shadow duration-200">
+              <div class="flex items-center justify-between mb-3 sm:mb-4">
+                <div class="w-10 h-10 sm:w-12 sm:h-12 bg-green-100 rounded-xl flex items-center justify-center">
+                  <svg class="w-5 h-5 sm:w-6 sm:h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
                 </div>
               </div>
-              <div class="text-3xl font-bold text-slate-900 mb-1">{stats.completedReminders}</div>
-              <div class="text-slate-500 font-medium">{$t('dashboard.completed')}</div>
+              <div class="text-2xl sm:text-3xl font-bold text-slate-900 mb-1">{stats.completedReminders}</div>
+              <div class="text-slate-500 font-medium text-xs sm:text-base">{$t('dashboard.completed')}</div>
             </div>
 
-            <div class="bg-white rounded-2xl p-6 border border-slate-200 hover:shadow-lg transition-shadow duration-200">
-              <div class="flex items-center justify-between mb-4">
-                <div class="w-12 h-12 bg-amber-100 rounded-xl flex items-center justify-center">
-                  <svg class="w-6 h-6 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div class="bg-white rounded-xl sm:rounded-2xl p-4 sm:p-6 border border-slate-200 hover:shadow-lg transition-shadow duration-200">
+              <div class="flex items-center justify-between mb-3 sm:mb-4">
+                <div class="w-10 h-10 sm:w-12 sm:h-12 bg-amber-100 rounded-xl flex items-center justify-center">
+                  <svg class="w-5 h-5 sm:w-6 sm:h-6 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
                 </div>
               </div>
-              <div class="text-3xl font-bold text-slate-900 mb-1">{stats.pendingReminders}</div>
-              <div class="text-slate-500 font-medium">{$t('dashboard.pending')}</div>
+              <div class="text-2xl sm:text-3xl font-bold text-slate-900 mb-1">{stats.pendingReminders}</div>
+              <div class="text-slate-500 font-medium text-xs sm:text-base">{$t('dashboard.pending')}</div>
             </div>
           </div>
 
-          <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
             <!-- Upcoming Reminders -->
-            <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden">
-              <div class="px-6 py-4 border-b border-slate-100">
-                <h2 class="text-lg font-semibold text-slate-900">{$t('dashboard.upcomingReminders')}</h2>
+            <div class="bg-white rounded-xl lg:rounded-2xl border border-slate-200 overflow-hidden">
+              <div class="px-4 lg:px-6 py-3 lg:py-4 border-b border-slate-100">
+                <h2 class="text-base lg:text-lg font-semibold text-slate-900">{$t('dashboard.upcomingReminders')}</h2>
               </div>
-              <div class="p-6 space-y-4">
+              <div class="p-4 lg:p-6 space-y-3 lg:space-y-4">
                 {#if upcomingReminders.length === 0}
-                  <p class="text-slate-500 text-center py-8">{$t('dashboard.noUpcomingReminders')}</p>
+                  <p class="text-slate-500 text-center py-6 lg:py-8">{$t('dashboard.noUpcomingReminders')}</p>
                 {:else}
                   {#each upcomingReminders as reminder}
-                    <div class="flex items-start gap-4 p-4 rounded-xl bg-slate-50 hover:bg-slate-100 transition-colors duration-200">
+                    <div class="flex items-start gap-3 p-3 lg:p-4 rounded-lg lg:rounded-xl bg-slate-50 hover:bg-slate-100 transition-colors duration-200">
                       <button
                         onclick={() => toggleReminderComplete(reminder.patientId, reminder.id)}
                         class="mt-0.5 w-5 h-5 rounded-full border-2 flex-shrink-0 transition-colors duration-200 {reminder.completed ? 'bg-teal-600 border-teal-600' : 'border-slate-300 hover:border-teal-600'}"
@@ -1000,18 +974,18 @@
             </div>
 
             <!-- Recent Patients -->
-            <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden">
-              <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
-                <h2 class="text-lg font-semibold text-slate-900">{$t('dashboard.recentPatients')}</h2>
-                <button onclick={() => navigateTo('patients')} class="text-sm text-teal-600 hover:text-teal-700 font-medium">{$t('common.viewAll')}</button>
+            <div class="bg-white rounded-xl lg:rounded-2xl border border-slate-200 overflow-hidden">
+              <div class="px-4 lg:px-6 py-3 lg:py-4 border-b border-slate-100 flex items-center justify-between">
+                <h2 class="text-base lg:text-lg font-semibold text-slate-900">{$t('dashboard.recentPatients')}</h2>
+                <button onclick={() => navigateTo('patients')} class="text-xs lg:text-sm text-teal-600 hover:text-teal-700 font-medium">{$t('common.viewAll')}</button>
               </div>
-              <div class="p-6 space-y-4">
+              <div class="p-4 lg:p-6 space-y-3 lg:space-y-4">
                 {#if patients.length === 0}
-                  <p class="text-slate-500 text-center py-8">{$t('dashboard.noPatients')}</p>
+                  <p class="text-slate-500 text-center py-6 lg:py-8">{$t('dashboard.noPatients')}</p>
                 {:else}
                   {#each patients.slice(0, 5) as patient}
-                    <div class="flex items-center gap-4 p-4 rounded-xl bg-slate-50 hover:bg-slate-100 transition-colors duration-200">
-                      <div class="w-12 h-12 bg-teal-600 rounded-full flex items-center justify-center text-white font-semibold text-lg">
+                    <div class="flex items-center gap-3 p-3 lg:p-4 rounded-lg lg:rounded-xl bg-slate-50 hover:bg-slate-100 transition-colors duration-200">
+                      <div class="w-10 h-10 lg:w-12 lg:h-12 bg-teal-600 rounded-full flex items-center justify-center text-white font-semibold text-lg lg:text-xl">
                         {patient.name.charAt(0).toUpperCase()}
                       </div>
                       <div class="flex-1 min-w-0">
@@ -1034,10 +1008,10 @@
         {#if currentView === 'patients'}
           <!-- Header -->
           <header class="sticky top-0 z-10 bg-white/80 backdrop-blur-md border-b border-slate-200 mb-6">
-            <div class="flex items-center justify-between px-2 py-4">
-              <div class="flex items-center gap-4">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 px-2 py-4">
+              <div class="flex flex-col sm:flex-row sm:items-center gap-4">
                 <h1 class="text-xl font-bold text-slate-900">{$t('patients.title')}</h1>
-                <div class="relative">
+                <div class="relative w-full sm:w-64">
                   <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                   </svg>
@@ -1045,13 +1019,13 @@
                     type="text"
                     bind:value={searchQuery}
                     placeholder={$t('common.searchPlaceholder')}
-                    class="pl-10 pr-4 py-2.5 w-64 bg-slate-100 border-0 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500 focus:bg-white transition-all duration-200"
+                    class="pl-10 pr-4 py-2.5 w-full bg-slate-100 border-0 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500 focus:bg-white transition-all duration-200"
                   />
                 </div>
               </div>
               <button
                 onclick={() => openPatientModal()}
-                class="flex items-center gap-2 px-5 py-2.5 bg-teal-600 text-white font-medium rounded-xl hover:bg-teal-700 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200"
+                class="flex items-center justify-center gap-2 px-5 py-2.5 bg-teal-600 text-white font-medium rounded-xl hover:bg-teal-700 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 w-full sm:w-auto"
               >
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
@@ -1087,26 +1061,26 @@
             <div class="space-y-4">
               {#each filteredPatients as patient}
                 <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden hover:shadow-lg transition-all duration-200">
-                  <div class="p-6">
-                    <div class="flex items-start gap-4">
-                      <div class="w-14 h-14 bg-teal-600 rounded-full flex items-center justify-center text-white font-semibold text-xl flex-shrink-0">
+                  <div class="p-4 sm:p-6">
+                    <div class="flex items-start gap-3 sm:gap-4">
+                      <div class="w-12 h-12 sm:w-14 sm:h-14 bg-teal-600 rounded-full flex items-center justify-center text-white font-semibold text-lg sm:text-xl flex-shrink-0">
                         {patient.name.charAt(0).toUpperCase()}
                       </div>
                       <div class="flex-1 min-w-0">
-                        <div class="flex items-start justify-between gap-4">
-                          <div>
-                            <h3 class="text-lg font-semibold text-slate-900">{patient.name}</h3>
+                        <div class="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+                          <div class="min-w-0">
+                            <h3 class="text-lg font-semibold text-slate-900 truncate">{patient.name}</h3>
                             {#if patient.phone}
-                              <p class="text-slate-600">{patient.phone}</p>
+                              <p class="text-slate-600 text-sm">{patient.phone}</p>
                             {/if}
                             {#if patient.email}
-                              <p class="text-slate-500 text-sm">{patient.email}</p>
+                              <p class="text-slate-500 text-sm truncate">{patient.email}</p>
                             {/if}
                             {#if patient.notes}
-                              <p class="text-slate-500 text-sm mt-2">{patient.notes}</p>
+                              <p class="text-slate-500 text-sm mt-2 line-clamp-2">{patient.notes}</p>
                             {/if}
                           </div>
-                          <div class="flex items-center gap-2 flex-shrink-0">
+                          <div class="flex items-center gap-1 sm:gap-2 flex-shrink-0 self-end sm:self-start">
                             <button
                               onclick={() => openReminderModal(patient.id)}
                               class="p-2 text-teal-600 hover:bg-teal-50 rounded-lg transition-colors duration-200"
@@ -1143,7 +1117,7 @@
                             <h4 class="text-sm font-medium text-slate-700 mb-3">{$t('patients.reminders')}</h4>
                             <div class="space-y-2">
                               {#each patient.reminders as reminder}
-                                <div class="flex items-center gap-3 p-3 rounded-lg {reminder.completed ? 'bg-slate-50' : 'bg-amber-50'}">
+                                <div class="flex flex-wrap items-center gap-2 p-3 rounded-lg {reminder.completed ? 'bg-slate-50' : 'bg-amber-50'}">
                                   <button
                                     onclick={() => toggleReminderComplete(patient.id, reminder.id)}
                                     class="w-5 h-5 rounded-full border-2 flex-shrink-0 transition-colors duration-200 {reminder.completed ? 'bg-teal-600 border-teal-600' : 'border-slate-300 hover:border-teal-600'}"
@@ -1155,9 +1129,9 @@
                                     {/if}
                                   </button>
                                   <div class="flex-1 min-w-0">
-                                    <span class="{reminder.completed ? 'text-slate-500 line-through' : 'text-slate-900'}">{reminder.title}</span>
+                                    <span class="{reminder.completed ? 'text-slate-500 line-through' : 'text-slate-900'} truncate block">{reminder.title}</span>
                                     {#if reminder.dueDate}
-                                      <span class="text-xs text-slate-400 ml-2">{formatDate(reminder.dueDate)}</span>
+                                      <span class="text-xs text-slate-400">{formatDate(reminder.dueDate)}</span>
                                     {/if}
                                     {#if reminder.recurrence && reminder.recurrence.frequency !== 'none'}
                                       <span class="text-xs text-purple-600 ml-1" title={formatRecurrence(reminder.recurrence)}>
@@ -1168,24 +1142,26 @@
                                     {/if}
                                   </div>
                                   <span class="px-2 py-0.5 text-xs font-medium rounded-full {getPriorityColor(reminder.priority)}">{reminder.priority}</span>
-                                  <button
-                                    onclick={() => openReminderModal(patient.id, reminder)}
-                                    class="p-1 text-slate-400 hover:text-teal-600 transition-colors duration-200"
-                                    aria-label={$t('common.edit')}
-                                  >
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                                    </svg>
-                                  </button>
-                                  <button
-                                    onclick={() => deleteReminder(patient.id, reminder.id)}
-                                    class="p-1 text-slate-400 hover:text-red-600 transition-colors duration-200"
-                                    aria-label={$t('common.delete')}
-                                  >
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                                    </svg>
-                                  </button>
+                                  <div class="flex items-center gap-1">
+                                    <button
+                                      onclick={() => openReminderModal(patient.id, reminder)}
+                                      class="p-1.5 text-slate-400 hover:text-teal-600 hover:bg-white/50 rounded transition-colors duration-200"
+                                      aria-label={$t('common.edit')}
+                                    >
+                                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                      </svg>
+                                    </button>
+                                    <button
+                                      onclick={() => deleteReminder(patient.id, reminder.id)}
+                                      class="p-1.5 text-slate-400 hover:text-red-600 hover:bg-white/50 rounded transition-colors duration-200"
+                                      aria-label={$t('common.delete')}
+                                    >
+                                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                                      </svg>
+                                    </button>
+                                  </div>
                                 </div>
                               {/each}
                             </div>
@@ -1204,7 +1180,7 @@
         {#if currentView === 'users' && user?.role === 'superadmin'}
           <!-- Header -->
           <header class="sticky top-0 z-10 bg-white/80 backdrop-blur-md border-b border-slate-200 mb-6">
-            <div class="flex items-center justify-between px-2 py-4">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 px-2 py-4">
               <div class="flex items-center gap-3">
                 <h1 class="text-xl font-bold text-slate-900">{$t('users.title')}</h1>
               </div>
@@ -1220,7 +1196,7 @@
                 </button>
                 <button
                   onclick={() => openUserModal()}
-                  class="flex items-center gap-2 px-5 py-2.5 bg-teal-600 text-white font-medium rounded-xl hover:bg-teal-700 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200"
+                  class="flex items-center gap-2 px-5 py-2.5 bg-teal-600 text-white font-medium rounded-xl hover:bg-teal-700 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 w-full sm:w-auto justify-center"
                 >
                   <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
@@ -1236,77 +1212,172 @@
               {#if users.length === 0}
                 <p class="text-slate-500 text-center py-12">{$t('users.noUsers')}</p>
               {:else}
-                <table class="w-full">
-                  <thead class="bg-slate-50">
-                    <tr>
-                      <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">{$t('users.user')}</th>
-                      <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">{$t('users.role')}</th>
-                      <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">{$t('users.created')}</th>
-                      <th class="px-6 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">{$t('users.actions')}</th>
-                    </tr>
-                  </thead>
-                  <tbody class="divide-y divide-slate-100">
-                    {#each users as u}
-                      <tr class="hover:bg-slate-50 transition-colors">
-                        <td class="px-6 py-4 whitespace-nowrap">
-                          <div class="flex items-center gap-3">
-                            <div class="w-10 h-10 bg-teal-600 rounded-full flex items-center justify-center text-white font-semibold">
-                              {u.fullName?.charAt(0)?.toUpperCase() || u.username?.charAt(0)?.toUpperCase() || 'U'}
-                            </div>
-                            <div>
-                              <p class="text-sm font-medium text-slate-900">{u.fullName || $t('users.noName')}</p>
-                              <p class="text-sm text-slate-500">@{u.username}</p>
-                            </div>
-                          </div>
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap">
+                <div class="divide-y divide-slate-100">
+                  {#each users as u}
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 sm:px-6 sm:py-4 hover:bg-slate-50 transition-colors">
+                      <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 bg-teal-600 rounded-full flex items-center justify-center text-white font-semibold flex-shrink-0">
+                          {u.fullName?.charAt(0)?.toUpperCase() || u.username?.charAt(0)?.toUpperCase() || 'U'}
+                        </div>
+                        <div class="min-w-0">
+                          <p class="text-sm font-medium text-slate-900 truncate">{u.fullName || $t('users.noName')}</p>
+                          <p class="text-sm text-slate-500">@{u.username}</p>
+                        </div>
+                      </div>
+                      <div class="flex items-center justify-between sm:gap-6 ml-0">
+                        <div class="flex items-center gap-4">
                           <span class="px-2 py-1 text-xs font-medium rounded-full
                             {u.role === 'superadmin' ? 'bg-purple-100 text-purple-700' :
                              u.role === 'admin' ? 'bg-blue-100 text-blue-700' :
                              'bg-slate-100 text-slate-700'}">
                             {u.role}
                           </span>
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
-                          {u.createdAt ? new Date(u.createdAt).toLocaleDateString($locale) : '-'}
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-right">
-                          <div class="flex items-center justify-end gap-2">
-                            {#if u.id !== user.userId}
-                              <button
-                                onclick={() => openUserModal(u)}
-                                class="p-2 text-slate-400 hover:text-teal-600 hover:bg-teal-50 rounded-lg transition-colors"
-                                title={$t('common.edit')}
-                              >
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                                </svg>
-                              </button>
-                              <button
-                                onclick={() => deleteUser(u.id)}
-                                class="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                                title={$t('common.delete')}
-                              >
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                </svg>
-                              </button>
-                            {:else}
-                              <span class="text-xs text-slate-400 px-2">{$t('common.you')}</span>
-                            {/if}
-                          </div>
-                        </td>
-                      </tr>
-                    {/each}
-                  </tbody>
-                </table>
+                          <span class="hidden sm:block text-sm text-slate-500">
+                            {u.createdAt ? new Date(u.createdAt).toLocaleDateString($locale) : '-'}
+                          </span>
+                        </div>
+                        <div class="flex items-center gap-1 sm:gap-2">
+                          {#if u.id !== user.userId}
+                            <button
+                              onclick={() => openUserModal(u)}
+                              class="p-2 text-slate-400 hover:text-teal-600 hover:bg-teal-50 rounded-lg transition-colors"
+                              title={$t('common.edit')}
+                            >
+                              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                              </svg>
+                            </button>
+                            <button
+                              onclick={() => deleteUser(u.id)}
+                              class="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                              title={$t('common.delete')}
+                            >
+                              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                              </svg>
+                            </button>
+                          {:else}
+                            <span class="text-xs text-slate-400 px-2">{$t('common.you')}</span>
+                          {/if}
+                        </div>
+                      </div>
+                    </div>
+                  {/each}
+                </div>
               {/if}
             </div>
           </div>
         {/if}
       {/if}
     </main>
+
+    <!-- Bottom Navigation (Mobile Only) -->
+    <nav class="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 px-2 py-2 pb-safe z-30">
+      <div class="flex items-center justify-around">
+        <button
+          onclick={() => navigateTo('dashboard')}
+          class="flex flex-col items-center gap-1 px-4 py-2 rounded-xl transition-colors {currentView === 'dashboard' ? 'text-teal-600 bg-teal-50' : 'text-slate-500 hover:text-slate-700'}"
+        >
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+          </svg>
+          <span class="text-xs font-medium">{$t('navigation.dashboard')}</span>
+        </button>
+
+        <button
+          onclick={() => navigateTo('patients')}
+          class="relative flex flex-col items-center gap-1 px-4 py-2 rounded-xl transition-colors {currentView === 'patients' ? 'text-teal-600 bg-teal-50' : 'text-slate-500 hover:text-slate-700'}"
+        >
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+          </svg>
+          <span class="text-xs font-medium">{$t('navigation.patients')}</span>
+          {#if stats.totalPatients > 0}
+            <span class="absolute top-0 right-2 w-4 h-4 bg-teal-600 text-white text-[10px] font-bold rounded-full flex items-center justify-center">{stats.totalPatients}</span>
+          {/if}
+        </button>
+
+        {#if user?.role === 'superadmin'}
+          <button
+            onclick={() => navigateTo('users')}
+            class="relative flex flex-col items-center gap-1 px-4 py-2 rounded-xl transition-colors {currentView === 'users' ? 'text-purple-600 bg-purple-50' : 'text-slate-500 hover:text-slate-700'}"
+          >
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+            </svg>
+            <span class="text-xs font-medium">{$t('navigation.users')}</span>
+            {#if users.length > 0}
+              <span class="absolute top-0 right-2 w-4 h-4 bg-purple-600 text-white text-[10px] font-bold rounded-full flex items-center justify-center">{users.length}</span>
+            {/if}
+          </button>
+        {/if}
+
+        <button
+          onclick={() => showProfileModal = true}
+          class="flex flex-col items-center gap-1 px-4 py-2 rounded-xl transition-colors text-slate-500 hover:text-slate-700"
+        >
+          <div class="w-8 h-8 bg-teal-600 rounded-full flex items-center justify-center text-white font-semibold text-sm">
+            {user?.fullName?.charAt(0)?.toUpperCase() || user?.username?.charAt(0)?.toUpperCase() || 'U'}
+          </div>
+        </button>
+      </div>
+    </nav>
   </div>
+
+  <!-- Profile Modal (Mobile) -->
+  {#if showProfileModal}
+    <div class="fixed inset-0 z-50 flex items-end lg:items-center justify-center p-4">
+      <div
+        class="absolute inset-0 bg-slate-900/50 backdrop-blur-sm"
+        onclick={closeProfileModal}
+        onkeydown={(e) => e.key === 'Escape' && closeProfileModal()}
+        role="button"
+        tabindex="0"
+        aria-label="Close modal"
+      ></div>
+      <div class="relative bg-white rounded-t-2xl lg:rounded-2xl shadow-xl w-full max-w-sm p-4 pb-8 lg:p-6" onclick={(e) => e.stopPropagation()} onkeydown={(e) => e.stopPropagation()} role="dialog" aria-modal="true" tabindex="-1">
+        <!-- Drag handle -->
+        <div class="lg:hidden flex justify-center mb-4">
+          <div class="w-12 h-1.5 bg-slate-200 rounded-full"></div>
+        </div>
+
+        <!-- User info -->
+        <div class="flex items-center gap-3 mb-6">
+          <div class="w-12 h-12 bg-teal-600 rounded-full flex items-center justify-center text-white font-semibold text-lg">
+            {user?.fullName?.charAt(0)?.toUpperCase() || user?.username?.charAt(0)?.toUpperCase() || 'U'}
+          </div>
+          <div class="flex-1 min-w-0">
+            <p class="font-medium text-slate-900 truncate">{user?.fullName || user?.username}</p>
+            <p class="text-sm text-slate-500 truncate">@{user?.username}</p>
+          </div>
+          <button onclick={logout} class="p-2 text-slate-400 hover:text-red-600 transition-colors" title={$t('auth.logout')}>
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+            </svg>
+          </button>
+        </div>
+
+        <!-- Language switcher -->
+        <div class="border-t border-slate-100 pt-4">
+          <p class="text-sm font-medium text-slate-700 mb-2">{$t('common.language')}</p>
+          <div class="flex gap-2">
+            <button
+              onclick={() => setLocale('en')}
+              class="flex-1 py-2.5 rounded-xl font-medium transition-colors duration-200 {$locale === 'en' ? 'bg-teal-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}"
+            >
+              English
+            </button>
+            <button
+              onclick={() => setLocale('id')}
+              class="flex-1 py-2.5 rounded-xl font-medium transition-colors duration-200 {$locale === 'id' ? 'bg-teal-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}"
+            >
+              Bahasa Indonesia
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  {/if}
 
   <!-- Patient Modal -->
   {#if showPatientModal}
@@ -1319,8 +1390,8 @@
         tabindex="0"
         aria-label="Close modal"
       ></div>
-      <div class="relative bg-white rounded-2xl shadow-xl w-full max-w-md p-6" onclick={(e) => e.stopPropagation()} onkeydown={(e) => e.stopPropagation()} role="dialog" aria-modal="true" tabindex="-1">
-        <h2 class="text-xl font-semibold text-slate-900 mb-6">{editingPatient ? $t('patients.editPatient') : $t('patients.addPatient')}</h2>
+      <div class="relative bg-white rounded-xl sm:rounded-2xl shadow-xl w-full max-w-md p-4 sm:p-6" onclick={(e) => e.stopPropagation()} onkeydown={(e) => e.stopPropagation()} role="dialog" aria-modal="true" tabindex="-1">
+        <h2 class="text-lg sm:text-xl font-semibold text-slate-900 mb-4 sm:mb-6">{editingPatient ? $t('patients.editPatient') : $t('patients.addPatient')}</h2>
         <form onsubmit={(e) => { e.preventDefault(); savePatient(); }} class="space-y-4">
           <div>
             <label for="name" class="block text-sm font-medium text-slate-700 mb-1">{$t('patients.patientName')} *</label>
@@ -1365,17 +1436,17 @@
               placeholder={$t('patients.notesPlaceholder')}
             ></textarea>
           </div>
-          <div class="flex gap-3 pt-4">
+          <div class="flex flex-col sm:flex-row gap-3 pt-4">
             <button
               type="button"
               onclick={closePatientModal}
-              class="flex-1 px-4 py-2.5 border border-slate-200 text-slate-700 font-medium rounded-xl hover:bg-slate-50 transition-colors duration-200"
+              class="flex-1 px-4 py-2.5 border border-slate-200 text-slate-700 font-medium rounded-xl hover:bg-slate-50 transition-colors duration-200 order-2 sm:order-1"
             >
               {$t('common.cancel')}
             </button>
             <button
               type="submit"
-              class="flex-1 px-4 py-2.5 bg-teal-600 text-white font-medium rounded-xl hover:bg-teal-700 transition-colors duration-200"
+              class="flex-1 px-4 py-2.5 bg-teal-600 text-white font-medium rounded-xl hover:bg-teal-700 transition-colors duration-200 order-1 sm:order-2"
             >
               {editingPatient ? $t('common.save') : $t('patients.addPatient')}
             </button>
@@ -1396,7 +1467,7 @@
         tabindex="0"
         aria-label="Close modal"
       ></div>
-      <div class="relative bg-white rounded-2xl shadow-xl w-full max-w-md p-6 max-h-[90vh] overflow-y-auto" onclick={(e) => e.stopPropagation()} onkeydown={(e) => e.stopPropagation()} role="dialog" aria-modal="true" tabindex="-1">
+      <div class="relative bg-white rounded-xl sm:rounded-2xl shadow-xl w-full max-w-md p-4 sm:p-6 max-h-[90vh] overflow-y-auto" onclick={(e) => e.stopPropagation()} onkeydown={(e) => e.stopPropagation()} role="dialog" aria-modal="true" tabindex="-1">
         <h2 class="text-xl font-semibold text-slate-900 mb-6">{editingReminder ? $t('patients.editReminder') : $t('patients.addReminder')}</h2>
         <form onsubmit={(e) => { e.preventDefault(); saveReminder(); }} class="space-y-4">
           <div>
@@ -1504,17 +1575,17 @@
             </div>
           </div>
 
-          <div class="flex gap-3 pt-4">
+          <div class="flex flex-col sm:flex-row gap-3 pt-4">
             <button
               type="button"
               onclick={closeReminderModal}
-              class="flex-1 px-4 py-2.5 border border-slate-200 text-slate-700 font-medium rounded-xl hover:bg-slate-50 transition-colors duration-200"
+              class="flex-1 px-4 py-2.5 border border-slate-200 text-slate-700 font-medium rounded-xl hover:bg-slate-50 transition-colors duration-200 order-2 sm:order-1"
             >
               {$t('common.cancel')}
             </button>
             <button
               type="submit"
-              class="flex-1 px-4 py-2.5 bg-teal-600 text-white font-medium rounded-xl hover:bg-teal-700 transition-colors duration-200"
+              class="flex-1 px-4 py-2.5 bg-teal-600 text-white font-medium rounded-xl hover:bg-teal-700 transition-colors duration-200 order-1 sm:order-2"
             >
               {editingReminder ? $t('common.save') : $t('patients.addReminder')}
             </button>
@@ -1535,8 +1606,8 @@
         tabindex="0"
         aria-label="Close modal"
       ></div>
-      <div class="relative bg-white rounded-2xl shadow-xl w-full max-w-sm p-6" onclick={(e) => e.stopPropagation()} onkeydown={(e) => e.stopPropagation()} role="dialog" aria-modal="true" tabindex="-1">
-        <h2 class="text-xl font-semibold text-slate-900 mb-6">{editingUser ? $t('users.editUserRole') : $t('users.addUser')}</h2>
+      <div class="relative bg-white rounded-xl sm:rounded-2xl shadow-xl w-full max-w-sm p-4 sm:p-6" onclick={(e) => e.stopPropagation()} onkeydown={(e) => e.stopPropagation()} role="dialog" aria-modal="true" tabindex="-1">
+        <h2 class="text-lg sm:text-xl font-semibold text-slate-900 mb-4 sm:mb-6">{editingUser ? $t('users.editUserRole') : $t('users.addUser')}</h2>
         {#if editingUser}
           <div class="mb-6">
             <div class="flex items-center gap-3 p-3 bg-slate-50 rounded-xl mb-4">
@@ -1567,17 +1638,17 @@
                   {/if}
                 </p>
               </div>
-              <div class="flex gap-3 pt-4">
+              <div class="flex flex-col sm:flex-row gap-3 pt-4">
                 <button
                   type="button"
                   onclick={closeUserModal}
-                  class="flex-1 px-4 py-2.5 border border-slate-200 text-slate-700 font-medium rounded-xl hover:bg-slate-50 transition-colors duration-200"
+                  class="flex-1 px-4 py-2.5 border border-slate-200 text-slate-700 font-medium rounded-xl hover:bg-slate-50 transition-colors duration-200 order-2 sm:order-1"
                 >
                   {$t('common.cancel')}
                 </button>
                 <button
                   type="submit"
-                  class="flex-1 px-4 py-2.5 bg-teal-600 text-white font-medium rounded-xl hover:bg-teal-700 transition-colors duration-200"
+                  class="flex-1 px-4 py-2.5 bg-teal-600 text-white font-medium rounded-xl hover:bg-teal-700 transition-colors duration-200 order-1 sm:order-2"
                 >
                   {$t('common.save')}
                 </button>
@@ -1611,18 +1682,18 @@
                 class="w-full px-4 py-2.5 bg-slate-100 border-0 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500 focus:bg-white transition-all duration-200"
               />
             </div>
-            <div class="flex gap-3 pt-4">
+            <div class="flex flex-col sm:flex-row gap-3 pt-4">
               <button
                 type="button"
                 onclick={closeUserModal}
-                class="flex-1 px-4 py-2.5 border border-slate-200 text-slate-700 font-medium rounded-xl hover:bg-slate-50 transition-colors duration-200"
+                class="flex-1 px-4 py-2.5 border border-slate-200 text-slate-700 font-medium rounded-xl hover:bg-slate-50 transition-colors duration-200 order-2 sm:order-1"
               >
                 {$t('common.cancel')}
               </button>
               <button
                 type="submit"
                 disabled={userFormLoading}
-                class="flex-1 px-4 py-2.5 bg-teal-600 text-white font-medium rounded-xl hover:bg-teal-700 disabled:opacity-50 transition-colors duration-200 flex items-center justify-center gap-2"
+                class="flex-1 px-4 py-2.5 bg-teal-600 text-white font-medium rounded-xl hover:bg-teal-700 disabled:opacity-50 transition-colors duration-200 flex items-center justify-center gap-2 order-1 sm:order-2"
               >
                 {#if userFormLoading}
                   <div class="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
@@ -1647,8 +1718,8 @@
         tabindex="0"
         aria-label="Close modal"
       ></div>
-      <div class="relative bg-white rounded-2xl shadow-xl w-full max-w-sm p-6" onclick={(e) => e.stopPropagation()} onkeydown={(e) => e.stopPropagation()} role="dialog" aria-modal="true" tabindex="-1">
-        <div class="flex items-center gap-4 mb-6">
+      <div class="relative bg-white rounded-xl sm:rounded-2xl shadow-xl w-full max-w-sm p-4 sm:p-6" onclick={(e) => e.stopPropagation()} onkeydown={(e) => e.stopPropagation()} role="dialog" aria-modal="true" tabindex="-1">
+        <div class="flex items-center gap-3 sm:gap-4 mb-4 sm:mb-6">
           <div class="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center flex-shrink-0">
             <svg class="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
@@ -1656,16 +1727,16 @@
           </div>
           <p class="text-slate-700">{confirmMessage}</p>
         </div>
-        <div class="flex gap-3">
+        <div class="flex flex-col sm:flex-row gap-3">
           <button
             onclick={closeConfirmModal}
-            class="flex-1 px-4 py-2.5 border border-slate-200 text-slate-700 font-medium rounded-xl hover:bg-slate-50 transition-colors duration-200"
+            class="flex-1 px-4 py-2.5 border border-slate-200 text-slate-700 font-medium rounded-xl hover:bg-slate-50 transition-colors duration-200 order-2 sm:order-1"
           >
             {$t('common.cancel')}
           </button>
           <button
             onclick={handleConfirm}
-            class="flex-1 px-4 py-2.5 bg-red-600 text-white font-medium rounded-xl hover:bg-red-700 transition-colors duration-200"
+            class="flex-1 px-4 py-2.5 bg-red-600 text-white font-medium rounded-xl hover:bg-red-700 transition-colors duration-200 order-1 sm:order-2"
           >
             {$t('common.delete')}
           </button>

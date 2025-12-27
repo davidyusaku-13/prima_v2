@@ -45,7 +45,10 @@
     "confirm": "Confirm",
     "viewAll": "View all",
     "refresh": "Refresh",
-    "you": "You"
+    "you": "You",
+    "more": "More",
+    "profile": "Profile",
+    "language": "Language"
   },
   "navigation": {
     "dashboard": "Dashboard",
