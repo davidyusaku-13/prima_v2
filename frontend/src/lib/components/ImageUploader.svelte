@@ -9,6 +9,14 @@
   export let token = null;
 
   const dispatch = createEventDispatcher();
+  const BACKEND_URL = 'http://localhost:8080';
+
+  // Helper to get full image URL
+  function getFullImageUrl(path) {
+    if (!path) return '';
+    if (path.startsWith('http')) return path;
+    return BACKEND_URL + path;
+  }
 
   let dragging = false;
   let fileInput;
@@ -86,7 +94,7 @@
   {#if imageUrl && imageUrl.hero_16x9}
     <div class="relative group">
       <div class="relative aspect-[16/9] rounded-xl overflow-hidden bg-slate-100">
-        <img src={imageUrl.hero_16x9} alt="Preview" class="w-full h-full object-cover" />
+        <img src={getFullImageUrl(imageUrl.hero_16x9)} alt="Preview" class="w-full h-full object-cover" />
         <div class="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
           <button
             type="button"

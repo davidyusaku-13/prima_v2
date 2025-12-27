@@ -9,6 +9,15 @@
   let loading = true;
   let error = null;
 
+  const BACKEND_URL = 'http://localhost:8080';
+
+  // Helper to get full image URL
+  function getFullImageUrl(path) {
+    if (!path) return '';
+    if (path.startsWith('http')) return path;
+    return BACKEND_URL + path;
+  }
+
   function formatDate(dateString) {
     if (!dateString) return '';
     const date = new Date(dateString);
@@ -103,10 +112,10 @@
   {:else}
     <article class="bg-white rounded-2xl border border-slate-200 overflow-hidden">
       <!-- Hero Image -->
-      {#if article.heroImage}
+      {#if article.hero_images?.hero_16x9}
         <div class="aspect-[21/9] bg-slate-100 overflow-hidden">
           <img
-            src={article.heroImage}
+            src={getFullImageUrl(article.hero_images.hero_16x9)}
             alt={article.title}
             class="w-full h-full object-cover"
           />
@@ -116,9 +125,9 @@
       <div class="p-6 md:p-8 lg:p-10">
         <!-- Category & Meta -->
         <div class="flex flex-wrap items-center gap-3 mb-4">
-          {#if article.category}
-            <span class="px-3 py-1 text-sm font-medium rounded-full {getCategoryColor(article.category)}">
-              {getCategoryLabel(article.category)}
+          {#if article.category_id}
+            <span class="px-3 py-1 text-sm font-medium rounded-full {getCategoryColor(article.category_id)}">
+              {getCategoryLabel(article.category_id)}
             </span>
           {/if}
           <span class="text-sm text-slate-400">

@@ -20,7 +20,7 @@
     return mins > 0 ? `${hours}h ${mins}m` : `${hours}h`;
   }
 
-  $: videoId = video ? getYouTubeVideoId(video.url || video.youtubeUrl) : null;
+  $: videoId = video ? getYouTubeVideoId(video.youtube_url || video.url || video.youtubeUrl) : null;
   $: embedUrl = videoId ? `https://www.youtube.com/embed/${videoId}` : '';
 </script>
 

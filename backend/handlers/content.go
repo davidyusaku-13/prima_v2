@@ -679,21 +679,21 @@ func (cs *ContentStore) UploadImage(c *gin.Context) {
 	img16x9 := imaging.Resize(img, 1920, 1080, imaging.Lanczos)
 	filename16x9 := filepath.Join(uploadsDir, filenamePrefix+"_16x9.jpg")
 	if err := imaging.Save(img16x9, filename16x9, imaging.JPEGQuality(85)); err == nil {
-		heroImages.Hero16x9 = "/" + filename16x9
+		heroImages.Hero16x9 = "/" + strings.ReplaceAll(filename16x9, "\\", "/")
 	}
 
 	// 1:1 - 1080x1080
 	img1x1 := imaging.Resize(img, 1080, 1080, imaging.Lanczos)
 	filename1x1 := filepath.Join(uploadsDir, filenamePrefix+"_1x1.jpg")
 	if err := imaging.Save(img1x1, filename1x1, imaging.JPEGQuality(85)); err == nil {
-		heroImages.Hero1x1 = "/" + filename1x1
+		heroImages.Hero1x1 = "/" + strings.ReplaceAll(filename1x1, "\\", "/")
 	}
 
 	// 4:3 - 1600x1200
 	img4x3 := imaging.Resize(img, 1600, 1200, imaging.Lanczos)
 	filename4x3 := filepath.Join(uploadsDir, filenamePrefix+"_4x3.jpg")
 	if err := imaging.Save(img4x3, filename4x3, imaging.JPEGQuality(85)); err == nil {
-		heroImages.Hero4x3 = "/" + filename4x3
+		heroImages.Hero4x3 = "/" + strings.ReplaceAll(filename4x3, "\\", "/")
 	}
 
 	c.JSON(http.StatusOK, gin.H{

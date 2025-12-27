@@ -96,7 +96,7 @@
   let showVideoManager = false;
   let showVideoModal = false;
   let currentVideo = null;
-  let currentArticleId = null;
+  let currentArticleId = localStorage.getItem('currentArticleId') || null;
 
   // CMS Functions
   function openArticleEditor(article = null) {
@@ -136,7 +136,8 @@
   }
 
   function viewArticle(article) {
-    currentArticleId = article.id;
+    currentArticleId = article.slug;
+    localStorage.setItem('currentArticleId', article.slug);
     navigateTo('berita-detail');
   }
 
@@ -508,16 +509,17 @@
         />
       {:else if currentView === 'cms' && (user?.role === 'superadmin' || user?.role === 'admin')}
         <CMSDashboardView
+          {token}
           onNavigateToArticleEditor={() => openArticleEditor()}
           onNavigateToVideoManager={openVideoManager}
-          onNavigateToArticle={viewArticle}
+          onEditArticle={(article) => openArticleEditor(article)}
         />
       {:else if currentView === 'berita'}
         <BeritaView onNavigateToArticle={viewArticle} />
       {:else if currentView === 'berita-detail'}
         <BeritaDetailView
           articleId={currentArticleId}
-          onBack={() => { currentArticleId = null; currentView = 'berita'; }}
+          onBack={() => { currentArticleId = null; localStorage.removeItem('currentArticleId'); currentView = 'berita'; }}
         />
       {:else if currentView === 'video'}
         <VideoEdukasiView onWatchVideo={watchVideo} />

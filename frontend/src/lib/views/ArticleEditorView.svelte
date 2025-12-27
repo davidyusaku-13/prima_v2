@@ -76,9 +76,9 @@
       };
 
       if (article?.id) {
-        await api.updateArticle(null, article.id, articleData);
+        await api.updateArticle(token, article.id, articleData);
       } else {
-        await api.createArticle(null, articleData);
+        await api.createArticle(token, articleData);
       }
 
       onSave(isPublish ? 'published' : 'draft');
@@ -96,7 +96,7 @@
 
     saving = true;
     try {
-      await api.deleteArticle(null, article.id);
+      await api.deleteArticle(token, article.id);
       onSave('deleted');
       onClose();
     } catch (e) {

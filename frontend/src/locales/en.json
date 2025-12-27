@@ -160,13 +160,43 @@
       "totalArticles": "Total Articles",
       "totalVideos": "Total Videos",
       "totalViews": "Total Views",
-      "popularContent": "Popular Content"
+      "popularContent": "Popular Content",
+      "drafts": "Drafts"
     },
     "quickActions": "Quick Actions",
     "addArticle": "Add Article",
     "addVideo": "Add Video",
     "recentActivity": "Recent Activity",
-    "noActivity": "No recent activity"
+    "noActivity": "No recent activity",
+    "filters": {
+      "all": "All",
+      "articles": "Articles",
+      "videos": "Videos",
+      "drafts": "Drafts"
+    },
+    "sort": {
+      "newest": "Newest",
+      "oldest": "Oldest",
+      "views": "Most Views",
+      "titleAZ": "Title A-Z"
+    },
+    "view": {
+      "list": "List View",
+      "grid": "Grid View"
+    },
+    "bulkActions": {
+      "selected": "{n} selected",
+      "deleteSelected": "Delete Selected",
+      "selectAll": "Select All",
+      "deselectAll": "Deselect All"
+    },
+    "noContent": "No content found",
+    "noArticlesFound": "No articles found",
+    "noVideosFound": "No videos found",
+    "noDraftsFound": "No drafts found",
+    "noSearchResults": "No results found for \"{query}\"",
+    "searchPlaceholder": "Search content...",
+    "itemsPerPage": "items per page"
   },
   "berita": {
     "title": "Health News",

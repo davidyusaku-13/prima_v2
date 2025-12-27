@@ -160,13 +160,43 @@
       "totalArticles": "Total Artikel",
       "totalVideos": "Total Video",
       "totalViews": "Total Tampilan",
-      "popularContent": "Konten Populer"
+      "popularContent": "Konten Populer",
+      "drafts": "Draf"
     },
     "quickActions": "Aksi Cepat",
     "addArticle": "Tambah Artikel",
     "addVideo": "Tambah Video",
     "recentActivity": "Aktivitas Terbaru",
-    "noActivity": "Tidak ada aktivitas terbaru"
+    "noActivity": "Tidak ada aktivitas terbaru",
+    "filters": {
+      "all": "Semua",
+      "articles": "Artikel",
+      "videos": "Video",
+      "drafts": "Draf"
+    },
+    "sort": {
+      "newest": "Terbaru",
+      "oldest": "Terlama",
+      "views": "Paling Banyak Dilihat",
+      "titleAZ": "Judul A-Z"
+    },
+    "view": {
+      "list": "Tampilan Daftar",
+      "grid": "Tampilan Kartu"
+    },
+    "bulkActions": {
+      "selected": "{n} dipilih",
+      "deleteSelected": "Hapus yang Dipilih",
+      "selectAll": "Pilih Semua",
+      "deselectAll": "Batalkan Pilihan"
+    },
+    "noContent": "Tidak ada konten",
+    "noArticlesFound": "Tidak ada artikel",
+    "noVideosFound": "Tidak ada video",
+    "noDraftsFound": "Tidak ada draf",
+    "noSearchResults": "Tidak ditemukan hasil untuk \"{query}\"",
+    "searchPlaceholder": "Cari konten...",
+    "itemsPerPage": "item per halaman"
   },
   "berita": {
     "title": "Berita Kesehatan",

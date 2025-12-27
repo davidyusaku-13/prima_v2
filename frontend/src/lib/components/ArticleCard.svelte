@@ -4,6 +4,15 @@
   export let article;
   export let onClick = () => {};
 
+  const BACKEND_URL = 'http://localhost:8080';
+
+  // Helper to get full image URL
+  function getFullImageUrl(path) {
+    if (!path) return '';
+    if (path.startsWith('http')) return path;
+    return BACKEND_URL + path;
+  }
+
   function formatDate(dateString) {
     if (!dateString) return '';
     const date = new Date(dateString);
@@ -47,7 +56,7 @@
   <div class="relative aspect-[16/9] bg-slate-100 overflow-hidden">
     {#if heroImageUrl}
       <img
-        src={heroImageUrl}
+        src={getFullImageUrl(heroImageUrl)}
         alt={article.title}
         class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
       />

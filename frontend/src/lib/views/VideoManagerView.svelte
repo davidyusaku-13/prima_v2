@@ -5,7 +5,7 @@
 
   export let onClose = () => {};
   export let onSave = () => {};
-  export const token = null;
+  export let token = null;
 
   let videos = [];
   let loading = true;
@@ -41,11 +41,19 @@
     error = null;
 
     try {
-      videoThumbnail = `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
-      if (!videoTitle) {
-        videoTitle = $t('videoManager.youtubeVideo', { id: videoId });
+      // Fetch metadata from noembed API
+      const response = await fetch(`https://noembed.com/embed?url=https://www.youtube.com/watch?v=${videoId}`);
+      const data = await response.json();
+
+      if (data.title) {
+        videoTitle = data.title;
       }
+      // Note: noembed doesn't provide video description, only channel name
+      // Leave description empty for user to fill manually
+      videoThumbnail = data.thumbnail_url || `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
     } catch (e) {
+      // Fallback to just thumbnail if API fails
+      videoThumbnail = `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
       error = $t('videoManager.errorPreview');
     } finally {
       fetchingPreview = false;
@@ -95,13 +103,13 @@
 
       if (editingVideo?.id) {
         // For update, we send what changed (title, description)
-        await api.updateVideo(null, editingVideo.id, {
+        await api.updateVideo(token, editingVideo.id, {
           title: videoTitle.trim(),
           description: videoDescription
         });
       } else {
         // For create, we need youtube_url and category_id
-        await api.createVideo(null, videoData);
+        await api.createVideo(token, videoData);
       }
 
       clearForm();
@@ -118,7 +126,7 @@
     if (!confirm($t('videoManager.deleteConfirm'))) return;
 
     try {
-      await api.deleteVideo(null, video.id);
+      await api.deleteVideo(token, video.id);
       loadVideos();
       onSave();
     } catch (e) {
@@ -276,7 +284,7 @@
 
         <!-- Video List -->
         <div class="space-y-4">
-          <h3 class="font-semibold text-slate-900">{$t('cms.existingVideos', { n: videos.length })}</h3>
+          <h3 class="font-semibold text-slate-900">{$t('cms.existingVideos', { values: { n: videos.length } })}</h3>
 
           {#if loading}
             <div class="space-y-4">
