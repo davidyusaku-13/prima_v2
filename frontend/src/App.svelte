@@ -21,6 +21,7 @@
   import ConfirmModal from '$lib/components/ConfirmModal.svelte';
   import ProfileModal from '$lib/components/ProfileModal.svelte';
   import VideoModal from '$lib/components/VideoModal.svelte';
+  import VideoEditModal from '$lib/components/VideoEditModal.svelte';
 
   // API
   import * as api from '$lib/utils/api.js';
@@ -95,6 +96,8 @@
   let editingArticle = null;
   let showVideoManager = false;
   let showVideoModal = false;
+  let showVideoEditModal = false;
+  let editingVideo = null;
   let currentVideo = null;
   let currentArticleId = localStorage.getItem('currentArticleId') || null;
 
@@ -123,6 +126,16 @@
 
   function handleVideoSave() {
     console.log('Video saved');
+  }
+
+  function openVideoEditModal(video) {
+    editingVideo = video;
+    showVideoEditModal = true;
+  }
+
+  function closeVideoEditModal() {
+    showVideoEditModal = false;
+    editingVideo = null;
   }
 
   function watchVideo(video) {
@@ -514,6 +527,7 @@
           onNavigateToArticleEditor={() => openArticleEditor()}
           onNavigateToVideoManager={openVideoManager}
           onEditArticle={(article) => openArticleEditor(article)}
+          onEditVideo={(video) => openVideoEditModal(video)}
         />
       {:else if currentView === 'berita'}
         <BeritaView onNavigateToArticle={viewArticle} />
@@ -611,4 +625,14 @@
     video={currentVideo}
     onClose={closeVideoModal}
   />
+
+  <!-- Video Edit Modal -->
+  {#if showVideoEditModal}
+    <VideoEditModal
+      video={editingVideo}
+      {token}
+      onClose={closeVideoEditModal}
+      onSave={handleVideoSave}
+    />
+  {/if}
 {/if}

@@ -5,6 +5,7 @@
   export let onClick = () => {};
   export let showActions = false;
   export let onDelete = () => {};
+  export let onEdit = () => {};
 
   function getYouTubeVideoId(url) {
     if (!url) return null;
@@ -114,14 +115,16 @@
     <!-- Actions -->
     {#if showActions}
       <div class="mt-3 pt-3 border-t border-slate-100 flex items-center justify-end gap-2">
+        {#if onEdit}
+          <button
+            onclick={(e) => { e.stopPropagation(); onEdit(); }}
+            class="px-3 py-1.5 text-xs font-medium text-slate-600 hover:text-teal-600 hover:bg-teal-50 rounded-lg transition-colors"
+          >
+            {$t('common.edit')}
+          </button>
+        {/if}
         <button
-          onclick={onClick}
-          class="px-3 py-1.5 text-xs font-medium text-slate-600 hover:text-teal-600 hover:bg-teal-50 rounded-lg transition-colors"
-        >
-          {$t('common.edit')}
-        </button>
-        <button
-          onclick={onDelete}
+          onclick={(e) => { e.stopPropagation(); onDelete(); }}
           class="px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50 rounded-lg transition-colors"
         >
           {$t('common.delete')}

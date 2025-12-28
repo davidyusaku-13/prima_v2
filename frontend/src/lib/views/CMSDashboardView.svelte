@@ -9,6 +9,7 @@
   export let onNavigateToArticleEditor = () => {};
   export let onNavigateToVideoManager = () => {};
   export let onEditArticle = () => {};
+  export let onEditVideo = () => {};
   export let token = null;
 
   // Data
@@ -208,7 +209,7 @@
     if (item.type === 'article') {
       onEditArticle(item);
     } else {
-      onNavigateToVideoManager();
+      onEditVideo(item);
     }
   }
 
@@ -489,6 +490,7 @@
                 video={item}
                 onClick={() => handleEditItem(item)}
                 showActions={true}
+                onEdit={() => handleEditItem(item)}
                 onDelete={() => handleDeleteItem(item)}
               />
             {/if}
