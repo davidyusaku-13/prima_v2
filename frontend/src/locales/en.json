@@ -54,7 +54,8 @@
     "system": "System",
     "cms": "CMS",
     "errorLoading": "Failed to load data",
-    "error": "Error"
+    "error": "Error",
+    "clear": "Clear"
   },
   "navigation": {
     "dashboard": "Dashboard",
@@ -252,7 +253,9 @@
     "successSaved": "Article saved successfully",
     "successPublished": "Article published successfully",
     "successDeleted": "Article deleted successfully",
-    "errorSave": "Failed to save article"
+    "errorSave": "Failed to save article",
+    "previewMode": "Preview",
+    "editMode": "Edit"
   },
   "videoManager": {
     "title": "Video Manager",

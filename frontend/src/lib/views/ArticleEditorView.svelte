@@ -117,9 +117,27 @@
   }
 </script>
 
-<div class="fixed inset-0 bg-black/50 z-50 overflow-y-auto" onclick={onClose}>
-  <div class="min-h-screen flex items-start justify-center p-4 pt-10">
-    <div class="w-full max-w-4xl bg-white rounded-2xl shadow-2xl" onclick={(e) => e.stopPropagation()}>
+<div
+  class="fixed inset-0 bg-black/50 z-50 overflow-y-auto"
+  onclick={onClose}
+  role="button"
+  tabindex="0"
+  aria-label="Close modal"
+  onkeydown={(e) => e.key === 'Escape' && onClose()}
+>
+  <div
+    class="min-h-screen flex items-start justify-center p-4 pt-10"
+    onclick={(e) => e.stopPropagation()}
+    role="presentation"
+  >
+    <div
+      class="w-full max-w-4xl bg-white rounded-2xl shadow-2xl"
+      onclick={(e) => e.stopPropagation()}
+      onkeydown={(e) => {}}
+      role="dialog"
+      aria-modal="true"
+      tabindex="-1"
+    >
       <!-- Header -->
       <div class="flex items-center justify-between px-6 py-4 border-b border-slate-200">
         <div class="flex items-center gap-3">

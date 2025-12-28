@@ -59,10 +59,6 @@
   });
 </script>
 
-<link
-  href="https://cdn.quilljs.com/1.3.6/dist/quill.snow.css"
-  rel="stylesheet"
-/>
 <div bind:this={editorDiv} class="quill-editor"></div>
 
 <style>

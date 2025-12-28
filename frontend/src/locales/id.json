@@ -54,7 +54,8 @@
     "system": "Sistem",
     "cms": "CMS",
     "errorLoading": "Gagal memuat data",
-    "error": "Kesalahan"
+    "error": "Kesalahan",
+    "clear": "Hapus"
   },
   "navigation": {
     "dashboard": "Beranda",
@@ -252,7 +253,9 @@
     "successSaved": "Artikel berhasil disimpan",
     "successPublished": "Artikel berhasil diterbitkan",
     "successDeleted": "Artikel berhasil dihapus",
-    "errorSave": "Gagal menyimpan artikel"
+    "errorSave": "Gagal menyimpan artikel",
+    "previewMode": "Pratinjau",
+    "editMode": "Ubah"
   },
   "videoManager": {
     "title": "Manajer Video",
