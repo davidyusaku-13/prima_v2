@@ -1,8 +1,10 @@
 <script>
   import { t } from 'svelte-i18n';
+  import WhatsAppPreview from '$lib/components/whatsapp/WhatsAppPreview.svelte';
 
   export let show = false;
   export let editingReminder = null;
+  export let patient = null;
   export let reminderForm = {
     patientId: '',
     title: '',
@@ -177,6 +179,17 @@
             {/if}
           </div>
         </div>
+
+        <!-- WhatsApp Preview Section -->
+        {#if reminderForm.title || reminderForm.description}
+          <div class="pt-3 sm:pt-4 border-t border-slate-100">
+            <WhatsAppPreview
+              message={reminderForm.description}
+              patientName={patient?.name || ''}
+              reminderTitle={reminderForm.title}
+            />
+          </div>
+        {/if}
 
         <div class="flex flex-col-reverse sm:flex-row gap-2 sm:gap-3 pt-3 sm:pt-4">
           <button

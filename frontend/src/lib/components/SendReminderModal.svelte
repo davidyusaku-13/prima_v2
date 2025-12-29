@@ -1,5 +1,6 @@
 <script>
   import { t } from 'svelte-i18n';
+  import WhatsAppPreview from '$lib/components/whatsapp/WhatsAppPreview.svelte';
 
   let {
     show = false,
@@ -10,17 +11,6 @@
     onClose = () => {},
     onConfirm = () => {}
   } = $props();
-
-  function formatMessagePreview(reminder, patient) {
-    if (!reminder || !patient) return '';
-    let preview = `Halo ${patient.name},\n\n*${reminder.title}*`;
-    if (reminder.description) {
-      preview += `\n\n${reminder.description}`;
-    }
-    return preview;
-  }
-
-  let messagePreview = $derived(formatMessagePreview(reminder, patient));
 </script>
 
 {#if show}
@@ -66,25 +56,14 @@
         </div>
       {/if}
 
-      <!-- Reminder preview -->
-      {#if reminder}
+      <!-- WhatsApp Message Preview -->
+      {#if reminder && patient}
         <div class="mb-4">
-          <p class="text-xs text-slate-500 mb-2">{$t('reminder.send.preview')}</p>
-          <div class="p-3 bg-green-50 rounded-xl border border-green-100">
-            <p class="text-sm font-medium text-slate-900 mb-1">{reminder.title}</p>
-            {#if reminder.description}
-              <p class="text-sm text-slate-600 line-clamp-3">{reminder.description}</p>
-            {/if}
-          </div>
-          <!-- Full message preview (collapsible) -->
-          {#if messagePreview}
-            <details class="mt-2">
-              <summary class="text-xs text-slate-400 cursor-pointer hover:text-slate-600">
-                {$t('reminder.send.preview')} (WhatsApp)
-              </summary>
-              <pre class="mt-2 p-2 bg-slate-100 rounded text-xs text-slate-700 whitespace-pre-wrap font-sans">{messagePreview}</pre>
-            </details>
-          {/if}
+          <WhatsAppPreview
+            message={reminder.description || ''}
+            patientName={patient.name}
+            reminderTitle={reminder.title}
+          />
         </div>
       {/if}
 

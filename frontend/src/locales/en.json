@@ -130,6 +130,12 @@
       "invalidPhone": "Invalid WhatsApp number",
       "gowaUnavailable": "GOWA is currently unavailable. Please try again later.",
       "preview": "Message Preview"
+    },
+    "preview": {
+      "label": "WhatsApp message preview",
+      "title": "WhatsApp Message Preview",
+      "greeting": "Hello {name},",
+      "disclaimer": "This information is for educational purposes. Consult a healthcare professional for your specific condition."
     }
   },
   "users": {

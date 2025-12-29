@@ -130,6 +130,12 @@
       "invalidPhone": "Nomor WhatsApp tidak valid",
       "gowaUnavailable": "GOWA sedang tidak tersedia. Coba lagi nanti.",
       "preview": "Pratinjau Pesan"
+    },
+    "preview": {
+      "label": "Preview pesan WhatsApp",
+      "title": "Preview Pesan WhatsApp",
+      "greeting": "Halo {name},",
+      "disclaimer": "Informasi ini untuk tujuan edukasi. Konsultasikan dengan tenaga kesehatan untuk kondisi spesifik Anda."
     }
   },
   "users": {

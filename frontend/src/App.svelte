@@ -631,6 +631,7 @@
     show={showReminderModal}
     {editingReminder}
     {reminderForm}
+    patient={patients.find(p => p.id === reminderForm.patientId) || null}
     onClose={closeReminderModal}
     onSave={saveReminder}
     onToggleDay={toggleDayOfWeek}

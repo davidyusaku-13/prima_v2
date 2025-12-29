@@ -1,1 +1,8 @@
 @import "tailwindcss";
+
+@theme {
+  /* WhatsApp brand colors */
+  --color-whatsapp-green: #25D366;
+  --color-whatsapp-bubble: #DCF8C6;
+  --color-whatsapp-dark: #075E54;
+}
