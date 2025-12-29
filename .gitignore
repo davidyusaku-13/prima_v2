@@ -4,6 +4,10 @@
 .worktrees/
 frontend/.env
 backend/.env
+backend/config.yaml
+backend/*.exe
+_bmad-output/
+_bmad/
 node_modules
 CLAUDE.md
 GOWA-README.md

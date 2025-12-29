@@ -1,23 +1,27 @@
 package main
 
 import (
-	"bytes"
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"log"
+	"log/slog"
 	"net/http"
 	"os"
 	"strings"
 	"sync"
 	"time"
 
-	"github.com/gin-gonic/gin"
 	"github.com/gin-contrib/cors"
+	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
 
+	"github.com/davidyusaku-13/prima_v2/config"
 	"github.com/davidyusaku-13/prima_v2/handlers"
+	"github.com/davidyusaku-13/prima_v2/models"
+	"github.com/davidyusaku-13/prima_v2/services"
+	"github.com/davidyusaku-13/prima_v2/utils"
 )
 
 const (
@@ -144,60 +148,8 @@ func verifyToken(tokenString string) (*Claims, error) {
 	return nil, fmt.Errorf("invalid token")
 }
 
-// GOWA Configuration
-func getGowaEndpoint() string { return getEnv("GOWA_ENDPOINT", "http://localhost:3000") }
-func getGowaUser() string     { return getEnv("GOWA_USER", "admin") }
-func getGowaPass() string     { return getEnv("GOWA_PASS", "password123") }
 
-// Format phone number for WhatsApp (Indonesian format: 08xx -> 628xx)
-func formatWhatsAppNumber(phone string) string {
-	phone = strings.TrimSpace(phone)
-	phone = strings.ReplaceAll(phone, "-", "")
-	phone = strings.ReplaceAll(phone, " ", "")
-
-	if idx := strings.Index(phone, "@"); idx != -1 {
-		phone = phone[:idx]
-	}
-
-	if strings.HasPrefix(phone, "08") {
-		phone = "62" + phone[1:]
-	} else if strings.HasPrefix(phone, "+62") {
-		phone = "62" + phone[3:]
-	} else if strings.HasPrefix(phone, "8") {
-		phone = "62" + phone
-	}
-
-	return phone + "@s.whatsapp.net"
-}
-
-// Models
-type Recurrence struct {
-	Frequency  string `json:"frequency"`
-	Interval   int    `json:"interval"`
-	DaysOfWeek []int  `json:"daysOfWeek"`
-	EndDate    string `json:"endDate,omitempty"`
-}
-
-type Reminder struct {
-	ID          string     `json:"id"`
-	Title       string     `json:"title"`
-	Description string     `json:"description"`
-	DueDate     string     `json:"dueDate,omitempty"`
-	Priority    string     `json:"priority"`
-	Completed   bool       `json:"completed"`
-	Recurrence  Recurrence `json:"recurrence"`
-	Notified    bool       `json:"notified"`
-}
-
-type Patient struct {
-	ID        string     `json:"id"`
-	Name      string     `json:"name"`
-	Phone     string     `json:"phone"`
-	Email     string     `json:"email,omitempty"`
-	Notes     string     `json:"notes,omitempty"`
-	Reminders []*Reminder `json:"reminders,omitempty"`
-	CreatedBy string     `json:"createdBy,omitempty"`
-}
+// Patient and Reminder types are now in models/patient.go
 
 // User is stored in memory and file (includes password)
 type User struct {
@@ -229,9 +181,10 @@ func (u *User) MarshalJSON() ([]byte, error) {
 	})
 }
 
+// PatientStore wraps models.PatientStore for backward compatibility
 type PatientStore struct {
 	mu       sync.RWMutex
-	patients map[string]*Patient
+	patients map[string]*models.Patient
 }
 
 type UserStore struct {
@@ -241,9 +194,14 @@ type UserStore struct {
 }
 
 var (
-	store        = PatientStore{patients: make(map[string]*Patient)}
-	userStore    = UserStore{users: make(map[string]*User), byName: make(map[string]string)}
-	contentStore *handlers.ContentStore
+	store           = PatientStore{patients: make(map[string]*models.Patient)}
+	userStore       = UserStore{users: make(map[string]*User), byName: make(map[string]string)}
+	contentStore    *handlers.ContentStore
+	appConfig       *config.Config
+	appLogger       *slog.Logger
+	gowaClient      *services.GOWAClient
+	reminderHandler *handlers.ReminderHandler
+	patientStore    *models.PatientStore
 )
 
 func main() {
@@ -255,9 +213,38 @@ func main() {
 	// Load .env file
 	loadEnvFile()
 
+	// Load configuration from YAML
+	appConfig = config.LoadOrDefault("config.yaml")
+	log.Printf("Configuration loaded: server port=%d, GOWA endpoint=%s", appConfig.Server.Port, appConfig.GOWA.Endpoint)
+
+	// Initialize structured logger
+	utils.InitDefaultLogger(appConfig.Logging.Level, appConfig.Logging.Format)
+	appLogger = utils.DefaultLogger
+	appLogger.Info("Logger initialized", "level", appConfig.Logging.Level, "format", appConfig.Logging.Format)
+
 	// Load existing data
 	loadData()
 	loadUsers()
+
+	// Initialize patient store with shared models
+	patientStore = models.NewPatientStore(saveData)
+	patientStore.Patients = store.patients
+
+	// Initialize GOWA client with circuit breaker
+	gowaClient = services.NewGOWAClientFromConfig(appConfig, appLogger)
+	appLogger.Info("GOWA client initialized",
+		"endpoint", appConfig.GOWA.Endpoint,
+		"circuit_breaker_threshold", appConfig.CircuitBreaker.FailureThreshold,
+	)
+
+	// Initialize reminder handler with new architecture
+	reminderHandler = handlers.NewReminderHandler(
+		patientStore,
+		appConfig,
+		gowaClient,
+		appLogger,
+		generateID,
+	)
 
 	// Initialize and load content store
 	contentStore = handlers.NewContentStore()
@@ -271,9 +258,9 @@ func main() {
 
 	router := gin.Default()
 
-	// Configure CORS
+	// Configure CORS using config
 	router.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{"http://localhost:5173"},
+		AllowOrigins:     []string{appConfig.Server.CORSOrigin},
 		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization"},
 		AllowCredentials: true,
@@ -320,11 +307,12 @@ func main() {
 		api.PUT("/patients/:id", updatePatient)
 		api.DELETE("/patients/:id", deletePatient)
 
-		// Reminder routes
-		api.POST("/patients/:id/reminders", createReminder)
-		api.PUT("/patients/:id/reminders/:reminderId", updateReminder)
-		api.POST("/patients/:id/reminders/:reminderId/toggle", toggleReminder)
-		api.DELETE("/patients/:id/reminders/:reminderId", deleteReminder)
+		// Reminder routes - using new handler with circuit breaker
+		api.POST("/patients/:id/reminders", reminderHandler.Create)
+		api.PUT("/patients/:id/reminders/:reminderId", reminderHandler.Update)
+		api.POST("/patients/:id/reminders/:reminderId/toggle", reminderHandler.Toggle)
+		api.DELETE("/patients/:id/reminders/:reminderId", reminderHandler.Delete)
+		api.POST("/patients/:id/reminders/:reminderId/send", reminderHandler.Send)
 
 		// User management routes (superadmin only)
 		api.GET("/users", requireRole(RoleSuperadmin), getUsers)
@@ -351,7 +339,7 @@ func main() {
 		api.GET("/dashboard/stats", requireRole(RoleAdmin, RoleSuperadmin), contentStore.GetDashboardStats)
 	}
 
-	router.Run(":8080")
+	router.Run(fmt.Sprintf(":%d", appConfig.Server.Port))
 }
 
 // Auth middleware
@@ -528,7 +516,7 @@ func loadData() {
 		return
 	}
 
-	var patients map[string]*Patient
+	var patients map[string]*models.Patient
 	if err := json.Unmarshal(data, &patients); err != nil {
 		return
 	}
@@ -541,7 +529,7 @@ func loadData() {
 func saveData() {
 	go func() {
 		store.mu.RLock()
-		patients := make(map[string]*Patient)
+		patients := make(map[string]*models.Patient)
 		for k, v := range store.patients {
 			patients[k] = v
 		}
@@ -613,37 +601,17 @@ func saveUsers() {
 	os.Rename(tmpFile, usersDataFile)
 }
 
-// WhatsApp
+// sendWhatsAppMessage sends a WhatsApp message using the GOWA client with circuit breaker
 func sendWhatsAppMessage(phone, message string) error {
-	endpoint := getGowaEndpoint() + "/send/message"
-
-	payload := map[string]interface{}{
-		"phone":   phone,
-		"message": message,
+	if gowaClient == nil {
+		return fmt.Errorf("GOWA client not initialized")
 	}
 
-	jsonData, _ := json.Marshal(payload)
-
-	req, _ := http.NewRequest("POST", endpoint, bytes.NewBuffer(jsonData))
-	auth := getGowaUser() + ":" + getGowaPass()
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Authorization", "Basic "+base64.StdEncoding.EncodeToString([]byte(auth)))
-
-	client := &http.Client{Timeout: 10 * time.Second}
-	resp, err := client.Do(req)
-	if err != nil {
-		return fmt.Errorf("request failed: %v", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("API returned status: %d", resp.StatusCode)
-	}
-
-	return nil
+	_, err := gowaClient.SendMessage(phone, message)
+	return err
 }
 
-// Reminder checker
+// Reminder checker - uses structured logging and new phone validation
 func checkReminders() {
 	ticker := time.NewTicker(1 * time.Minute)
 	defer ticker.Stop()
@@ -682,15 +650,8 @@ func checkReminders() {
 				}
 
 				if !now.Before(dueTime) && now.Before(dueTime.Add(5*time.Minute)) {
-					whatsappPhone := formatWhatsAppNumber(patient.Phone)
-					message := fmt.Sprintf("Reminder: %s\n\n", reminder.Title)
-					if reminder.Description != "" {
-						message += fmt.Sprintf("Description: %s\n\n", reminder.Description)
-					}
-					message += fmt.Sprintf("Priority: %s\n", reminder.Priority)
-					if reminder.Recurrence.Frequency != "none" {
-						message += fmt.Sprintf("Repeats: %s", reminder.Recurrence.Frequency)
-					}
+					// Use new phone validation utility
+					whatsappPhone := utils.FormatWhatsAppNumber(patient.Phone)
 
 					toNotify = append(toNotify, struct {
 						phone    string
@@ -715,7 +676,17 @@ func checkReminders() {
 				message += fmt.Sprintf("Repeats: %s", n.recFreq)
 			}
 
-			sendWhatsAppMessage(n.phone, message)
+			if err := sendWhatsAppMessage(n.phone, message); err != nil {
+				appLogger.Error("Failed to send WhatsApp reminder",
+					"phone", utils.MaskPhone(n.phone),
+					"error", err.Error(),
+				)
+			} else {
+				appLogger.Info("WhatsApp reminder sent",
+					"phone", utils.MaskPhone(n.phone),
+					"title", n.title,
+				)
+			}
 		}
 	}
 }
@@ -726,7 +697,7 @@ func getPatients(c *gin.Context) {
 	role := c.GetString("role")
 
 	store.mu.RLock()
-	patients := make([]*Patient, 0, len(store.patients))
+	patients := make([]*models.Patient, 0, len(store.patients))
 	for _, p := range store.patients {
 		// Superadmin and Admin can see all patients
 		// Volunteers can only see patients they created
@@ -755,21 +726,23 @@ func createPatient(c *gin.Context) {
 		return
 	}
 
-	if len(req.Phone) < 8 {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid phone number"})
+	// Use new phone validation utility
+	phoneResult := utils.ValidatePhoneNumber(req.Phone)
+	if !phoneResult.Valid {
+		c.JSON(http.StatusBadRequest, gin.H{"error": phoneResult.ErrorMessage})
 		return
 	}
 
 	userID := c.GetString("userID")
 
 	store.mu.Lock()
-	patient := &Patient{
+	patient := &models.Patient{
 		ID:        generateID(),
 		Name:      req.Name,
-		Phone:     req.Phone,
+		Phone:     phoneResult.Normalized, // Store normalized phone
 		Email:     req.Email,
 		Notes:     req.Notes,
-		Reminders: make([]*Reminder, 0),
+		Reminders: make([]*models.Reminder, 0),
 		CreatedBy: userID,
 	}
 	store.patients[patient.ID] = patient
@@ -877,183 +850,7 @@ func deletePatient(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "patient deleted"})
 }
 
-// Reminder handlers
-func createReminder(c *gin.Context) {
-	patientID := c.Param("id")
-	userID := c.GetString("userID")
-	role := c.GetString("role")
-
-	var req struct {
-		Title       string     `json:"title" binding:"required"`
-		Description string     `json:"description"`
-		DueDate     string     `json:"dueDate"`
-		Priority    string     `json:"priority"`
-		Recurrence  Recurrence `json:"recurrence"`
-	}
-
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-
-	store.mu.Lock()
-	patient, exists := store.patients[patientID]
-	if !exists {
-		store.mu.Unlock()
-		c.JSON(http.StatusNotFound, gin.H{"error": "patient not found"})
-		return
-	}
-
-	// Check access for volunteers
-	if role == string(RoleVolunteer) && patient.CreatedBy != userID {
-		store.mu.Unlock()
-		c.JSON(http.StatusForbidden, gin.H{"error": "insufficient permissions"})
-		return
-	}
-
-	reminder := &Reminder{
-		ID:          generateID(),
-		Title:       req.Title,
-		Description: req.Description,
-		DueDate:     req.DueDate,
-		Priority:    req.Priority,
-		Completed:   false,
-		Recurrence:  req.Recurrence,
-		Notified:    false,
-	}
-	patient.Reminders = append(patient.Reminders, reminder)
-	store.mu.Unlock()
-
-	saveData()
-	c.JSON(http.StatusCreated, reminder)
-}
-
-func updateReminder(c *gin.Context) {
-	patientID := c.Param("id")
-	reminderID := c.Param("reminderId")
-	userID := c.GetString("userID")
-	role := c.GetString("role")
-
-	var req struct {
-		Title       string     `json:"title"`
-		Description string     `json:"description"`
-		DueDate     string     `json:"dueDate"`
-		Priority    string     `json:"priority"`
-		Recurrence  Recurrence `json:"recurrence"`
-	}
-
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-
-	store.mu.Lock()
-	patient, exists := store.patients[patientID]
-	if !exists {
-		store.mu.Unlock()
-		c.JSON(http.StatusNotFound, gin.H{"error": "patient not found"})
-		return
-	}
-
-	// Check access for volunteers
-	if role == string(RoleVolunteer) && patient.CreatedBy != userID {
-		store.mu.Unlock()
-		c.JSON(http.StatusForbidden, gin.H{"error": "insufficient permissions"})
-		return
-	}
-
-	for _, r := range patient.Reminders {
-		if r.ID == reminderID {
-			if req.Title != "" {
-				r.Title = req.Title
-			}
-			r.Description = req.Description
-			r.DueDate = req.DueDate
-			r.Priority = req.Priority
-			r.Recurrence = req.Recurrence
-			if req.DueDate != "" && req.DueDate != r.DueDate {
-				r.Notified = false
-			}
-			store.mu.Unlock()
-			saveData()
-			c.JSON(http.StatusOK, r)
-			return
-		}
-	}
-	store.mu.Unlock()
-	c.JSON(http.StatusNotFound, gin.H{"error": "reminder not found"})
-}
-
-func toggleReminder(c *gin.Context) {
-	patientID := c.Param("id")
-	reminderID := c.Param("reminderId")
-	userID := c.GetString("userID")
-	role := c.GetString("role")
-
-	store.mu.Lock()
-	patient, exists := store.patients[patientID]
-	if !exists {
-		store.mu.Unlock()
-		c.JSON(http.StatusNotFound, gin.H{"error": "patient not found"})
-		return
-	}
-
-	// Check access for volunteers
-	if role == string(RoleVolunteer) && patient.CreatedBy != userID {
-		store.mu.Unlock()
-		c.JSON(http.StatusForbidden, gin.H{"error": "insufficient permissions"})
-		return
-	}
-
-	for _, r := range patient.Reminders {
-		if r.ID == reminderID {
-			r.Completed = !r.Completed
-			if !r.Completed {
-				r.Notified = false
-			}
-			store.mu.Unlock()
-			saveData()
-			c.JSON(http.StatusOK, r)
-			return
-		}
-	}
-	store.mu.Unlock()
-	c.JSON(http.StatusNotFound, gin.H{"error": "reminder not found"})
-}
-
-func deleteReminder(c *gin.Context) {
-	patientID := c.Param("id")
-	reminderID := c.Param("reminderId")
-	userID := c.GetString("userID")
-	role := c.GetString("role")
-
-	store.mu.Lock()
-	patient, exists := store.patients[patientID]
-	if !exists {
-		store.mu.Unlock()
-		c.JSON(http.StatusNotFound, gin.H{"error": "patient not found"})
-		return
-	}
-
-	// Check access for volunteers
-	if role == string(RoleVolunteer) && patient.CreatedBy != userID {
-		store.mu.Unlock()
-		c.JSON(http.StatusForbidden, gin.H{"error": "insufficient permissions"})
-		return
-	}
-
-	for i, r := range patient.Reminders {
-		if r.ID == reminderID {
-			patient.Reminders = append(patient.Reminders[:i], patient.Reminders[i+1:]...)
-			store.mu.Unlock()
-			saveData()
-			c.JSON(http.StatusOK, gin.H{"message": "reminder deleted"})
-			return
-		}
-	}
-	store.mu.Unlock()
-	c.JSON(http.StatusNotFound, gin.H{"error": "reminder not found"})
-}
+// Reminder handlers are now in handlers/reminder.go
 
 // User management handlers
 func getUsers(c *gin.Context) {

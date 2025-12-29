@@ -102,6 +102,16 @@ export async function deleteReminder(token, patientId, reminderId) {
   if (!res.ok) throw new Error('Failed to delete reminder');
 }
 
+export async function sendReminder(token, patientId, reminderId) {
+  const res = await fetch(`${API_URL}/patients/${patientId}/reminders/${reminderId}/send`, {
+    method: 'POST',
+    headers: getHeaders(token)
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'Failed to send reminder');
+  return data;
+}
+
 // Users (superadmin)
 export async function fetchUsers(token) {
   const res = await fetch(`${API_URL}/users`, {

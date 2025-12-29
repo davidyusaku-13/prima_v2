@@ -118,6 +118,20 @@
     "daysOfWeek": "Days of week",
     "endDate": "End date (optional)"
   },
+  "reminder": {
+    "send": {
+      "title": "Send Reminder",
+      "confirm": "Send reminder to {patientName}?",
+      "button": "Send",
+      "cancel": "Cancel",
+      "sending": "Sending...",
+      "success": "Reminder sent successfully",
+      "error": "Failed to send reminder",
+      "invalidPhone": "Invalid WhatsApp number",
+      "gowaUnavailable": "GOWA is currently unavailable. Please try again later.",
+      "preview": "Message Preview"
+    }
+  },
   "users": {
     "title": "User Management",
     "addUser": "Add User",

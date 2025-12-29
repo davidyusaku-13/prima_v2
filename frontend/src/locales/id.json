@@ -118,6 +118,20 @@
     "daysOfWeek": "Hari dalam seminggu",
     "endDate": "Tanggal berakhir (opsional)"
   },
+  "reminder": {
+    "send": {
+      "title": "Kirim Reminder",
+      "confirm": "Kirim reminder ke {patientName}?",
+      "button": "Kirim",
+      "cancel": "Batal",
+      "sending": "Mengirim...",
+      "success": "Reminder berhasil dikirim",
+      "error": "Gagal mengirim reminder",
+      "invalidPhone": "Nomor WhatsApp tidak valid",
+      "gowaUnavailable": "GOWA sedang tidak tersedia. Coba lagi nanti.",
+      "preview": "Pratinjau Pesan"
+    }
+  },
   "users": {
     "title": "Manajemen Pengguna",
     "addUser": "Tambah Pengguna",

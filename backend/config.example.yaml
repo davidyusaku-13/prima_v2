@@ -1,0 +1,34 @@
+# PRIMA Backend Configuration Template
+# Copy this file to config.yaml and customize as needed
+# Environment variables can be used with ${VAR_NAME} syntax
+
+server:
+  port: 8080
+  cors_origin: "http://localhost:5173"
+
+gowa:
+  # GOWA WhatsApp Gateway settings
+  endpoint: "http://localhost:3000"
+  user: "admin"
+  password: "your-gowa-password"
+  webhook_secret: "your-webhook-secret"
+  timeout: 30s
+
+circuit_breaker:
+  # Circuit breaker for GOWA service
+  failure_threshold: 5      # Number of failures before opening circuit
+  cooldown_duration: 5m     # Time to wait before retrying after circuit opens
+
+retry:
+  # Retry settings for failed deliveries
+  max_attempts: 5
+  delays:
+    - 1s
+    - 5s
+    - 30s
+    - 2m
+    - 10m
+
+logging:
+  level: "info"             # debug, info, warn, error
+  format: "json"            # json or text

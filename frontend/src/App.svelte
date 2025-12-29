@@ -22,6 +22,7 @@
   import ProfileModal from '$lib/components/ProfileModal.svelte';
   import VideoModal from '$lib/components/VideoModal.svelte';
   import VideoEditModal from '$lib/components/VideoEditModal.svelte';
+  import SendReminderModal from '$lib/components/SendReminderModal.svelte';
 
   // API
   import * as api from '$lib/utils/api.js';
@@ -100,6 +101,13 @@
   let editingVideo = null;
   let currentVideo = null;
   let currentArticleId = localStorage.getItem('currentArticleId') || null;
+
+  // Send Reminder Modal State
+  let showSendReminderModal = false;
+  let sendReminderPatient = null;
+  let sendReminderReminder = null;
+  let sendReminderStatus = 'idle'; // 'idle' | 'sending' | 'success' | 'error'
+  let sendReminderError = '';
 
   // CMS Functions
   function openArticleEditor(article = null) {
@@ -374,6 +382,52 @@
     }
   }
 
+  // Send Reminder functions
+  function openSendReminderModal(patient, reminder) {
+    sendReminderPatient = patient;
+    sendReminderReminder = reminder;
+    sendReminderStatus = 'idle';
+    sendReminderError = '';
+    showSendReminderModal = true;
+  }
+
+  function closeSendReminderModal() {
+    showSendReminderModal = false;
+    sendReminderPatient = null;
+    sendReminderReminder = null;
+    sendReminderStatus = 'idle';
+    sendReminderError = '';
+  }
+
+  async function handleSendReminder() {
+    if (!sendReminderPatient || !sendReminderReminder) return;
+
+    sendReminderStatus = 'sending';
+    sendReminderError = '';
+
+    // Optimistic UI update - set reminder status to 'sending' locally
+    const patientIndex = patients.findIndex(p => p.id === sendReminderPatient.id);
+    if (patientIndex !== -1) {
+      const reminderIndex = patients[patientIndex].reminders?.findIndex(r => r.id === sendReminderReminder.id);
+      if (reminderIndex !== -1 && reminderIndex !== undefined) {
+        patients[patientIndex].reminders[reminderIndex].delivery_status = 'sending';
+        patients = [...patients]; // Trigger reactivity
+      }
+    }
+
+    try {
+      await api.sendReminder(token, sendReminderPatient.id, sendReminderReminder.id);
+      sendReminderStatus = 'success';
+      await loadPatients(); // Refresh to get updated delivery status
+      closeSendReminderModal();
+    } catch (e) {
+      sendReminderStatus = 'error';
+      sendReminderError = e.message || 'Failed to send reminder';
+      // Revert optimistic update on error
+      await loadPatients();
+    }
+  }
+
   // User functions
   async function registerUser() {
     userFormLoading = true;
@@ -512,6 +566,7 @@
           onDeletePatient={deletePatient}
           onToggleReminder={toggleReminder}
           onDeleteReminder={deleteReminder}
+          onSendReminder={openSendReminderModal}
         />
       {:else if currentView === 'users' && user?.role === 'superadmin'}
         <UsersView
@@ -635,4 +690,15 @@
       onSave={handleVideoSave}
     />
   {/if}
+
+  <!-- Send Reminder Modal -->
+  <SendReminderModal
+    show={showSendReminderModal}
+    patient={sendReminderPatient}
+    reminder={sendReminderReminder}
+    status={sendReminderStatus}
+    errorMessage={sendReminderError}
+    onClose={closeSendReminderModal}
+    onConfirm={handleSendReminder}
+  />
 {/if}
