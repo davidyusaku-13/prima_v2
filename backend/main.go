@@ -197,17 +197,18 @@ type UserStore struct {
 }
 
 var (
-	store           = PatientStore{patients: make(map[string]*models.Patient)}
-	userStore       = UserStore{users: make(map[string]*User), byName: make(map[string]string)}
-	contentStore    *handlers.ContentStore
-	appConfig       *config.Config
-	appLogger       *slog.Logger
-	gowaClient      *services.GOWAClient
-	reminderHandler *handlers.ReminderHandler
-	patientStore    *models.PatientStore
-	scheduler       *services.ReminderScheduler
-	webhookHandler  *handlers.WebhookHandler
-	sseHandler      *handlers.SSEHandler
+	store            = PatientStore{patients: make(map[string]*models.Patient)}
+	userStore        = UserStore{users: make(map[string]*User), byName: make(map[string]string)}
+	contentStore     *handlers.ContentStore
+	appConfig        *config.Config
+	appLogger        *slog.Logger
+	gowaClient       *services.GOWAClient
+	reminderHandler  *handlers.ReminderHandler
+	patientStore     *models.PatientStore
+	scheduler        *services.ReminderScheduler
+	webhookHandler   *handlers.WebhookHandler
+	sseHandler       *handlers.SSEHandler
+	analyticsHandler *handlers.AnalyticsHandler
 )
 
 func main() {
@@ -285,6 +286,9 @@ func main() {
 
 	// Connect SSE handler to scheduler for auto-send broadcasts
 	scheduler.SetSSEHandler(sseHandler)
+
+	// Initialize analytics handler for delivery statistics
+	analyticsHandler = handlers.NewAnalyticsHandler(patientStore)
 
 	// Start reminder checker goroutine (DISABLED - replaced by ReminderScheduler auto-send)
 	// The ReminderScheduler now handles all reminder sending: scheduled, retry, and auto-send
@@ -397,6 +401,9 @@ func main() {
 
 		// Analytics - Content attachment statistics
 		api.GET("/analytics/content", requireRole(RoleAdmin, RoleSuperadmin), contentStore.GetContentAnalytics)
+
+		// Analytics - Delivery statistics
+		api.GET("/analytics/delivery", requireRole(RoleAdmin, RoleSuperadmin), analyticsHandler.GetDeliveryAnalytics)
 	}
 
 	// Create HTTP server for graceful shutdown

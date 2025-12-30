@@ -439,8 +439,10 @@
     }
   },
   "analytics": {
-    "title": "Content Analytics",
-    "sectionTitle": "Content Attachment Statistics",
+    "title": "Analytics",
+    "sectionTitle": "System Statistics",
+    "deliverySectionTitle": "Delivery Statistics",
+    "contentSectionTitle": "Content Attachment Statistics",
     "topContent": "Top 10 Most Popular Content",
     "articles": "Articles",
     "videos": "Educational Videos",
@@ -451,6 +453,30 @@
     "articleLabel": "Article",
     "videoLabel": "Video",
     "loading": "Loading analytics data...",
-    "error": "Failed to load analytics data"
+    "error": "Failed to load analytics data",
+    "retry": "Try again",
+    "period": {
+      "today": "Today",
+      "7days": "7 Days",
+      "30days": "30 Days",
+      "allTime": "All Time"
+    },
+    "totalSent": "Total Sent",
+    "successRate": "Success Rate",
+    "failedLast7Days": "Failed (7 Days)",
+    "avgDeliveryTime": "Avg Delivery Time",
+    "breakdownTitle": "Delivery Status Breakdown",
+    "status": {
+      "pending": "Pending",
+      "scheduled": "Scheduled",
+      "queued": "Queued",
+      "sending": "Sending",
+      "retrying": "Retrying",
+      "sent": "Sent",
+      "delivered": "Delivered",
+      "read": "Read",
+      "failed": "Failed",
+      "expired": "Expired"
+    }
   }
 }

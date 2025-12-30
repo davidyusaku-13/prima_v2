@@ -361,6 +361,19 @@ export async function getContentAnalytics(token) {
   return data.data;
 }
 
+// Analytics - Delivery Statistics
+export async function getDeliveryAnalytics(token, period = 'all') {
+  const res = await fetch(`${API_URL}/analytics/delivery?period=${period}`, {
+    headers: getHeaders(token)
+  });
+  if (!res.ok) {
+    const data = await res.json();
+    throw new Error(data.error || 'Failed to fetch delivery analytics');
+  }
+  const data = await res.json();
+  return data.data;
+}
+
 /**
  * Check if current time is within quiet hours
  * @param {Object} config - Quiet hours config {start_hour, end_hour, timezone}
