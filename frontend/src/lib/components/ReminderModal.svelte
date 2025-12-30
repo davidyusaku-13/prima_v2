@@ -1,21 +1,48 @@
 <script>
   import { t } from 'svelte-i18n';
   import WhatsAppPreview from '$lib/components/whatsapp/WhatsAppPreview.svelte';
+  import ContentPickerModal from '$lib/components/content/ContentPickerModal.svelte';
+  import ContentChip from '$lib/components/content/ContentChip.svelte';
 
-  export let show = false;
-  export let editingReminder = null;
-  export let patient = null;
-  export let reminderForm = {
-    patientId: '',
-    title: '',
-    description: '',
-    dueDate: '',
-    priority: 'medium',
-    recurrence: { frequency: 'none', interval: 1, daysOfWeek: [], endDate: '' }
-  };
-  export let onClose = () => {};
-  export let onSave = () => {};
-  export let onToggleDay = () => {};
+  let {
+    show = false,
+    editingReminder = null,
+    patient = null,
+    userRole = 'volunteer', // 'superadmin', 'admin', or 'volunteer'
+    reminderForm = {
+      patientId: '',
+      title: '',
+      description: '',
+      dueDate: '',
+      priority: 'medium',
+      recurrence: { frequency: 'none', interval: 1, daysOfWeek: [], endDate: '' },
+      attachments: []
+    },
+    onClose = () => {},
+    onSave = () => {}
+  } = $props();
+
+  // State for content picker modal
+  let showContentPicker = $state(false);
+
+  // Handle content selection from picker
+  function handleContentSelect(selectedContent) {
+    reminderForm.attachments = selectedContent;
+  }
+
+  // Handle content removal from chip
+  function handleContentRemove(attachmentToRemove) {
+    reminderForm.attachments = reminderForm.attachments.filter(a =>
+      !(a.id === attachmentToRemove.id && a.type === attachmentToRemove.type)
+    );
+  }
+
+  // Get attachment count text
+  let attachmentCountText = $derived(
+    reminderForm.attachments.length > 0
+      ? ` (${reminderForm.attachments.length})`
+      : ''
+  );
 
   const daysOfWeek = [
     { value: 0, label: 'Sun' },
@@ -84,6 +111,40 @@
             placeholder={$t('reminders.descriptionPlaceholder')}
           ></textarea>
         </div>
+
+        <!-- Content Attachment Section -->
+        <div>
+          <div class="flex items-center justify-between mb-2">
+            <span class="block text-xs sm:text-sm font-medium text-slate-700">
+              {$t('content.picker.title')}
+            </span>
+            <button
+              type="button"
+              onclick={() => showContentPicker = true}
+              class="text-xs text-teal-600 hover:text-teal-700 font-medium underline"
+              aria-label="{$t('content.picker.attach')}{attachmentCountText}"
+            >
+              {$t('content.picker.attach')}{attachmentCountText}
+            </button>
+          </div>
+
+          <!-- Attached content chips -->
+          {#if reminderForm.attachments.length > 0}
+            <div class="flex flex-wrap gap-2">
+              {#each reminderForm.attachments as attachment (attachment.id + '-' + attachment.type)}
+                <ContentChip
+                  {attachment}
+                  onRemove={handleContentRemove}
+                />
+              {/each}
+            </div>
+          {:else}
+            <p class="text-xs text-slate-500">
+              {$t('content.picker.empty')}
+            </p>
+          {/if}
+        </div>
+
         <div class="grid grid-cols-2 gap-3">
           <div>
             <label for="dueDate" class="block text-xs sm:text-sm font-medium text-slate-700 mb-1">
@@ -181,12 +242,13 @@
         </div>
 
         <!-- WhatsApp Preview Section -->
-        {#if reminderForm.title || reminderForm.description}
+        {#if reminderForm.title || reminderForm.description || reminderForm.attachments.length > 0}
           <div class="pt-3 sm:pt-4 border-t border-slate-100">
             <WhatsAppPreview
               message={reminderForm.description}
               patientName={patient?.name || ''}
               reminderTitle={reminderForm.title}
+              attachments={reminderForm.attachments}
             />
           </div>
         {/if}
@@ -209,4 +271,13 @@
       </form>
     </div>
   </div>
+
+  <!-- Content Picker Modal -->
+  <ContentPickerModal
+    show={showContentPicker}
+    selectedContent={reminderForm.attachments}
+    userRole={userRole}
+    onClose={() => showContentPicker = false}
+    onSelect={handleContentSelect}
+  />
 {/if}

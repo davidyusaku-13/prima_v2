@@ -46,37 +46,39 @@ type HeroImages struct {
 
 // Article represents a news/educational article
 type Article struct {
-	ID          string       `json:"id"`
-	Title       string       `json:"title"`
-	Slug        string       `json:"slug"`
-	Excerpt     string       `json:"excerpt"`
-	Content     string       `json:"content"`
-	AuthorID    string       `json:"author_id"`
-	CategoryID  string       `json:"category_id"`
-	HeroImages  HeroImages   `json:"hero_images"`
-	Status      ArticleStatus `json:"status"`
-	Version     int          `json:"version"`
-	ViewCount   int          `json:"view_count"`
-	CreatedAt   string       `json:"created_at"`
-	PublishedAt string       `json:"published_at"`
-	UpdatedAt   string       `json:"updated_at"`
+	ID             string       `json:"id"`
+	Title          string       `json:"title"`
+	Slug           string       `json:"slug"`
+	Excerpt        string       `json:"excerpt"`
+	Content        string       `json:"content"`
+	AuthorID       string       `json:"author_id"`
+	CategoryID     string       `json:"category_id"`
+	HeroImages     HeroImages   `json:"hero_images"`
+	Status         ArticleStatus `json:"status"`
+	Version        int          `json:"version"`
+	ViewCount      int          `json:"view_count"`
+	AttachmentCount int         `json:"attachment_count"`
+	CreatedAt      string       `json:"created_at"`
+	PublishedAt    string       `json:"published_at"`
+	UpdatedAt      string       `json:"updated_at"`
 }
 
 // Video represents an educational YouTube video
 type Video struct {
-	ID           string     `json:"id"`
-	YouTubeURL   string     `json:"youtube_url"`
-	YouTubeID    string     `json:"youtube_id"`
-	Title        string     `json:"title"`
-	Description  string     `json:"description"`
-	ChannelName  string     `json:"channel_name"`
-	ThumbnailURL string     `json:"thumbnail_url"`
-	Duration     string     `json:"duration"`
-	CategoryID   string     `json:"category_id"`
-	Status       VideoStatus `json:"status"`
-	ViewCount    int        `json:"view_count"`
-	CreatedAt    string     `json:"created_at"`
-	UpdatedAt    string     `json:"updated_at"`
+	ID              string     `json:"id"`
+	YouTubeURL      string     `json:"youtube_url"`
+	YouTubeID       string     `json:"youtube_id"`
+	Title           string     `json:"title"`
+	Description     string     `json:"description"`
+	ChannelName     string     `json:"channel_name"`
+	ThumbnailURL    string     `json:"thumbnail_url"`
+	Duration        string     `json:"duration"`
+	CategoryID      string     `json:"category_id"`
+	Status          VideoStatus `json:"status"`
+	ViewCount       int        `json:"view_count"`
+	AttachmentCount int        `json:"attachment_count"`
+	CreatedAt       string     `json:"created_at"`
+	UpdatedAt       string     `json:"updated_at"`
 }
 
 // YouTubeMetadata represents metadata fetched from YouTube oEmbed/noembed

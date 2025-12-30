@@ -179,4 +179,212 @@ func TestApplyDefaults(t *testing.T) {
 	if cfg.Retry.MaxAttempts != 5 {
 		t.Errorf("Expected default max attempts 5, got %d", cfg.Retry.MaxAttempts)
 	}
+
+	// Verify disclaimer defaults
+	expectedDisclaimerText := "Informasi ini untuk tujuan edukasi. Konsultasikan dengan tenaga kesehatan untuk kondisi spesifik Anda."
+	if cfg.Disclaimer.Text != expectedDisclaimerText {
+		t.Errorf("Expected default disclaimer text '%s', got '%s'", expectedDisclaimerText, cfg.Disclaimer.Text)
+	}
+	if cfg.Disclaimer.Enabled == nil {
+		t.Error("Expected disclaimer Enabled to be set, got nil")
+	} else if !*cfg.Disclaimer.Enabled {
+		t.Error("Expected disclaimer Enabled to be true by default")
+	}
+}
+
+func TestApplyDefaults_DisclaimerPreservesExplicitValues(t *testing.T) {
+	// Test that explicit values are NOT overwritten by defaults
+	enabled := false
+	cfg := &Config{
+		Disclaimer: DisclaimerConfig{
+			Text:    "Custom disclaimer",
+			Enabled: &enabled,
+		},
+	}
+	cfg.applyDefaults()
+
+	// Custom text should be preserved
+	if cfg.Disclaimer.Text != "Custom disclaimer" {
+		t.Errorf("Expected custom disclaimer text to be preserved, got '%s'", cfg.Disclaimer.Text)
+	}
+
+	// Explicit false should be preserved (not overwritten to true)
+	if cfg.Disclaimer.Enabled == nil {
+		t.Error("Expected disclaimer Enabled to remain set")
+	} else if *cfg.Disclaimer.Enabled != false {
+		t.Error("Expected explicit Enabled=false to be preserved, not overwritten to true")
+	}
+}
+
+func TestApplyDefaults_QuietHours(t *testing.T) {
+	cfg := &Config{}
+	cfg.applyDefaults()
+
+	// Verify quiet hours defaults
+	if cfg.QuietHours.GetStartHour() != 21 {
+		t.Errorf("Expected default quiet hours start_hour 21, got %d", cfg.QuietHours.GetStartHour())
+	}
+	if cfg.QuietHours.GetEndHour() != 6 {
+		t.Errorf("Expected default quiet hours end_hour 6, got %d", cfg.QuietHours.GetEndHour())
+	}
+	if cfg.QuietHours.Timezone != "WIB" {
+		t.Errorf("Expected default quiet hours timezone 'WIB', got '%s'", cfg.QuietHours.Timezone)
+	}
+}
+
+func TestApplyDefaults_QuietHoursPreservesExplicitValues(t *testing.T) {
+	// Test that explicit values are NOT overwritten by defaults
+	startHour := 22
+	endHour := 7
+	cfg := &Config{
+		QuietHours: QuietHoursConfig{
+			StartHour: &startHour,
+			EndHour:   &endHour,
+			Timezone:  "WITA",
+		},
+	}
+	cfg.applyDefaults()
+
+	// Custom values should be preserved
+	if cfg.QuietHours.GetStartHour() != 22 {
+		t.Errorf("Expected custom start_hour 22 to be preserved, got %d", cfg.QuietHours.GetStartHour())
+	}
+	if cfg.QuietHours.GetEndHour() != 7 {
+		t.Errorf("Expected custom end_hour 7 to be preserved, got %d", cfg.QuietHours.GetEndHour())
+	}
+	if cfg.QuietHours.Timezone != "WITA" {
+		t.Errorf("Expected custom timezone 'WITA' to be preserved, got '%s'", cfg.QuietHours.Timezone)
+	}
+}
+
+func TestApplyDefaults_QuietHoursPreservesZeroValues(t *testing.T) {
+	// Test that explicit zero values (midnight) are NOT overwritten by defaults
+	startHour := 0  // Midnight
+	endHour := 5
+	cfg := &Config{
+		QuietHours: QuietHoursConfig{
+			StartHour: &startHour,
+			EndHour:   &endHour,
+			Timezone:  "WIB",
+		},
+	}
+	cfg.applyDefaults()
+
+	// Zero value should be preserved (not overwritten to 21)
+	if cfg.QuietHours.GetStartHour() != 0 {
+		t.Errorf("Expected start_hour 0 (midnight) to be preserved, got %d", cfg.QuietHours.GetStartHour())
+	}
+	if cfg.QuietHours.GetEndHour() != 5 {
+		t.Errorf("Expected end_hour 5 to be preserved, got %d", cfg.QuietHours.GetEndHour())
+	}
+}
+
+func TestLoadQuietHoursFromFile(t *testing.T) {
+	content := `
+quiet_hours:
+  start_hour: 20
+  end_hour: 5
+  timezone: "WIT"
+`
+	tmpFile, err := os.CreateTemp("", "config-quiethours-*.yaml")
+	if err != nil {
+		t.Fatalf("Failed to create temp file: %v", err)
+	}
+	defer os.Remove(tmpFile.Name())
+
+	if _, err := tmpFile.WriteString(content); err != nil {
+		t.Fatalf("Failed to write temp file: %v", err)
+	}
+	tmpFile.Close()
+
+	cfg, err := Load(tmpFile.Name())
+	if err != nil {
+		t.Fatalf("Failed to load config: %v", err)
+	}
+
+	if cfg.QuietHours.GetStartHour() != 20 {
+		t.Errorf("Expected start_hour 20, got %d", cfg.QuietHours.GetStartHour())
+	}
+	if cfg.QuietHours.GetEndHour() != 5 {
+		t.Errorf("Expected end_hour 5, got %d", cfg.QuietHours.GetEndHour())
+	}
+	if cfg.QuietHours.Timezone != "WIT" {
+		t.Errorf("Expected timezone 'WIT', got '%s'", cfg.QuietHours.Timezone)
+	}
+}
+
+func TestQuietHoursValidation_ValidConfig(t *testing.T) {
+	startHour := 21
+	endHour := 6
+	cfg := &QuietHoursConfig{
+		StartHour: &startHour,
+		EndHour:   &endHour,
+		Timezone:  "WIB",
+	}
+
+	err := cfg.Validate()
+	if err != nil {
+		t.Errorf("Expected valid config, got error: %v", err)
+	}
+}
+
+func TestQuietHoursValidation_InvalidStartHour(t *testing.T) {
+	startHour := 25 // Invalid: > 23
+	endHour := 6
+	cfg := &QuietHoursConfig{
+		StartHour: &startHour,
+		EndHour:   &endHour,
+		Timezone:  "WIB",
+	}
+
+	err := cfg.Validate()
+	if err == nil {
+		t.Error("Expected error for invalid start_hour, got nil")
+	}
+}
+
+func TestQuietHoursValidation_InvalidEndHour(t *testing.T) {
+	startHour := 21
+	endHour := -1 // Invalid: < 0
+	cfg := &QuietHoursConfig{
+		StartHour: &startHour,
+		EndHour:   &endHour,
+		Timezone:  "WIB",
+	}
+
+	err := cfg.Validate()
+	if err == nil {
+		t.Error("Expected error for invalid end_hour, got nil")
+	}
+}
+
+func TestQuietHoursValidation_InvalidTimezone(t *testing.T) {
+	startHour := 21
+	endHour := 6
+	cfg := &QuietHoursConfig{
+		StartHour: &startHour,
+		EndHour:   &endHour,
+		Timezone:  "INVALID",
+	}
+
+	err := cfg.Validate()
+	if err == nil {
+		t.Error("Expected error for invalid timezone, got nil")
+	}
+}
+
+func TestQuietHoursValidation_EmptyTimezoneIsValid(t *testing.T) {
+	// Empty timezone is valid (will use default WIB)
+	startHour := 21
+	endHour := 6
+	cfg := &QuietHoursConfig{
+		StartHour: &startHour,
+		EndHour:   &endHour,
+		Timezone:  "",
+	}
+
+	err := cfg.Validate()
+	if err != nil {
+		t.Errorf("Expected empty timezone to be valid, got error: %v", err)
+	}
 }

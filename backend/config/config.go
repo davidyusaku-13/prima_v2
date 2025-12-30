@@ -15,6 +15,8 @@ type Config struct {
 	CircuitBreaker CircuitBreakerConfig `yaml:"circuit_breaker"`
 	Retry          RetryConfig          `yaml:"retry"`
 	Logging        LoggingConfig        `yaml:"logging"`
+	Disclaimer     DisclaimerConfig     `yaml:"disclaimer"`
+	QuietHours     QuietHoursConfig     `yaml:"quiet_hours"`
 }
 
 // ServerConfig holds server-related configuration
@@ -50,6 +52,79 @@ type LoggingConfig struct {
 	Format string `yaml:"format"`
 }
 
+// DisclaimerConfig holds health disclaimer settings
+type DisclaimerConfig struct {
+	Text    string `yaml:"text"`
+	Enabled *bool  `yaml:"enabled"`
+}
+
+// QuietHoursConfig holds quiet hours settings for reminder delivery
+type QuietHoursConfig struct {
+	StartHour *int   `yaml:"start_hour"` // 21 (9 PM) - pointer to distinguish 0 from unset
+	EndHour   *int   `yaml:"end_hour"`   // 6 (6 AM) - pointer to distinguish 0 from unset
+	Timezone  string `yaml:"timezone"`   // "WIB" (UTC+7)
+}
+
+// GetStartHour returns the start hour value, defaulting to 21 if not set
+func (q *QuietHoursConfig) GetStartHour() int {
+	if q.StartHour == nil {
+		return 21
+	}
+	return *q.StartHour
+}
+
+// GetEndHour returns the end hour value, defaulting to 6 if not set
+func (q *QuietHoursConfig) GetEndHour() int {
+	if q.EndHour == nil {
+		return 6
+	}
+	return *q.EndHour
+}
+
+// Validate checks if the quiet hours configuration is valid
+func (q *QuietHoursConfig) Validate() error {
+	startHour := q.GetStartHour()
+	endHour := q.GetEndHour()
+
+	if startHour < 0 || startHour > 23 {
+		return fmt.Errorf("quiet_hours.start_hour must be between 0 and 23, got %d", startHour)
+	}
+	if endHour < 0 || endHour > 23 {
+		return fmt.Errorf("quiet_hours.end_hour must be between 0 and 23, got %d", endHour)
+	}
+
+	validTimezones := map[string]bool{"WIB": true, "WITA": true, "WIT": true}
+	if q.Timezone != "" && !validTimezones[q.Timezone] {
+		return fmt.Errorf("quiet_hours.timezone must be one of WIB, WITA, WIT, got %s", q.Timezone)
+	}
+
+	return nil
+}
+
+// ValidateCircuitBreaker checks if the circuit breaker configuration is valid
+func (c *CircuitBreakerConfig) Validate() error {
+	if c.FailureThreshold <= 0 {
+		return fmt.Errorf("circuit_breaker.failure_threshold must be > 0, got %d", c.FailureThreshold)
+	}
+	if c.CooldownDuration <= 0 {
+		return fmt.Errorf("circuit_breaker.cooldown_duration must be > 0, got %v", c.CooldownDuration)
+	}
+	return nil
+}
+
+// ValidateRetry checks if the retry configuration is valid
+func (r *RetryConfig) Validate() error {
+	if r.MaxAttempts <= 0 {
+		return fmt.Errorf("retry.max_attempts must be > 0, got %d", r.MaxAttempts)
+	}
+	for i, delay := range r.Delays {
+		if delay < 0 {
+			return fmt.Errorf("retry.delays[%d] must be >= 0, got %v", i, delay)
+		}
+	}
+	return nil
+}
+
 // Load reads configuration from a YAML file and returns a Config struct
 func Load(path string) (*Config, error) {
 	data, err := os.ReadFile(path)
@@ -67,6 +142,21 @@ func Load(path string) (*Config, error) {
 
 	// Apply defaults
 	cfg.applyDefaults()
+
+	// Validate circuit breaker config
+	if err := cfg.CircuitBreaker.Validate(); err != nil {
+		return nil, fmt.Errorf("invalid configuration: %w", err)
+	}
+
+	// Validate retry config
+	if err := cfg.Retry.Validate(); err != nil {
+		return nil, fmt.Errorf("invalid configuration: %w", err)
+	}
+
+	// Validate quiet hours config
+	if err := cfg.QuietHours.Validate(); err != nil {
+		return nil, fmt.Errorf("invalid configuration: %w", err)
+	}
 
 	return &cfg, nil
 }
@@ -117,6 +207,28 @@ func (c *Config) applyDefaults() {
 	}
 	if c.Logging.Format == "" {
 		c.Logging.Format = "json"
+	}
+
+	// Disclaimer defaults
+	if c.Disclaimer.Text == "" {
+		c.Disclaimer.Text = "Informasi ini untuk tujuan edukasi. Konsultasikan dengan tenaga kesehatan untuk kondisi spesifik Anda."
+	}
+	if c.Disclaimer.Enabled == nil {
+		enabled := true
+		c.Disclaimer.Enabled = &enabled
+	}
+
+	// Quiet hours defaults
+	if c.QuietHours.StartHour == nil {
+		startHour := 21 // 9 PM WIB
+		c.QuietHours.StartHour = &startHour
+	}
+	if c.QuietHours.EndHour == nil {
+		endHour := 6 // 6 AM WIB
+		c.QuietHours.EndHour = &endHour
+	}
+	if c.QuietHours.Timezone == "" {
+		c.QuietHours.Timezone = "WIB" // UTC+7
 	}
 }
 

@@ -1,13 +1,16 @@
 <script>
   import { t } from 'svelte-i18n';
   import WhatsAppPreview from '$lib/components/whatsapp/WhatsAppPreview.svelte';
+  import QuietHoursHint from '$lib/components/indicators/QuietHoursHint.svelte';
 
   let {
     show = false,
     patient = null,
     reminder = null,
-    status = 'idle', // 'idle' | 'sending' | 'success' | 'error'
+    status = 'idle', // 'idle' | 'sending' | 'success' | 'error' | 'scheduled'
     errorMessage = '',
+    scheduledTime = null,
+    isQuietHours = false,
     onClose = () => {},
     onConfirm = () => {}
   } = $props();
@@ -63,7 +66,16 @@
             message={reminder.description || ''}
             patientName={patient.name}
             reminderTitle={reminder.title}
+            isScheduled={isQuietHours}
+            scheduledTime={scheduledTime}
           />
+        </div>
+      {/if}
+
+      <!-- Quiet Hours Hint -->
+      {#if isQuietHours}
+        <div class="mb-4">
+          <QuietHoursHint scheduledTime={scheduledTime} />
         </div>
       {/if}
 

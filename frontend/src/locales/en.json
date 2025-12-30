@@ -131,11 +131,40 @@
       "gowaUnavailable": "GOWA is currently unavailable. Please try again later.",
       "preview": "Message Preview"
     },
+    "status": {
+      "pending": "Pending",
+      "scheduled": "Scheduled",
+      "queued": "Queued",
+      "sending": "Sending...",
+      "retrying": "Retrying ({count}/{max})",
+      "sent": "Sent",
+      "delivered": "Delivered",
+      "read": "Read",
+      "failed": "Failed",
+      "expired": "Expired",
+      "retry": "Retry"
+    },
+    "retry": {
+      "success": "Reminder sent successfully",
+      "error": "Failed to retry reminder",
+      "circuit_breaker_open": "GOWA is currently unavailable. Please try again in a few minutes.",
+      "invalid_phone": "Invalid WhatsApp number. Please fix the number first.",
+      "invalid_status": "Only failed reminders can be retried",
+      "retrying": "Retrying...",
+      "queued_success": "Reminder has been queued. Will be sent automatically when GOWA is back online.",
+      "edit_phone_title": "Fix WhatsApp Number",
+      "edit_phone_message": "The WhatsApp number for {name} is invalid. Please fix the number before retrying.",
+      "phone_too_short": "Number too short (minimum 10 digits)",
+      "update_and_retry": "Update & Retry"
+    },
+    "failedNotification": "Reminder to {patientName} failed to send",
+    "viewDetails": "View Details",
     "preview": {
       "label": "WhatsApp message preview",
       "title": "WhatsApp Message Preview",
       "greeting": "Hello {name},",
-      "disclaimer": "This information is for educational purposes. Consult a healthcare professional for your specific condition."
+      "disclaimer": "This information is for educational purposes. Consult a healthcare professional for your specific condition.",
+      "attachmentsHeader": "Educational Content:"
     }
   },
   "users": {
@@ -342,5 +371,71 @@
     "uploading": "Uploading...",
     "clickToUpload": "Click or drag to upload",
     "fileTypes": "PNG, JPG up to 5MB"
+  },
+  "content": {
+    "picker": {
+      "title": "Select Educational Content",
+      "search": "Search articles or videos...",
+      "tab": {
+        "all": "All",
+        "articles": "Articles",
+        "videos": "Videos"
+      },
+      "articles": "Articles",
+      "videos": "Videos",
+      "attach": "Attach",
+      "noResults": "No results found for \"{query}\"",
+      "empty": "No educational content available",
+      "selected": "{n} selected",
+      "clearAll": "Clear all"
+    },
+    "attachment": {
+      "count": {
+        "zero": "",
+        "one": "1 item",
+        "other": "{n} items"
+      },
+      "unavailable": "Content unavailable"
+    },
+    "preview": {
+      "title": "Content Preview",
+      "attach": "Attach",
+      "selected": "Selected",
+      "close": "Close preview"
+    },
+    "attribution": {
+      "author": "Author",
+      "channel": "Channel",
+      "publishedOn": "Published on",
+      "uploadedOn": "Uploaded on"
+    },
+    "disclaimer": {
+      "text": "This content is for health education purposes. Consult a healthcare professional for your specific condition."
+    }
+  },
+  "delivery": {
+    "failedRemindersCount": "{count} failed reminders",
+    "failedReminders": "Failed Reminders",
+    "noFailedReminders": "No failed reminders",
+    "failureReasons": {
+      "invalidPhone": "Invalid phone number",
+      "gowaTimeout": "GOWA timeout",
+      "gowaUnavailable": "GOWA unavailable",
+      "networkError": "Network error",
+      "unknown": "Unknown error"
+    },
+    "filter": {
+      "label": "Filter by delivery status",
+      "all": "All",
+      "pending": "Pending",
+      "sent": "Sent",
+      "failed": "Failed",
+      "empty": {
+        "all": "No reminders found",
+        "pending": "No pending reminders",
+        "sent": "No sent reminders",
+        "failed": "No failed reminders. All reminders sent successfully!"
+      }
+    }
   }
 }

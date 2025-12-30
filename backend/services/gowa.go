@@ -277,3 +277,90 @@ func (c *GOWAClient) GetCircuitBreakerState() string {
 func (c *GOWAClient) GetCircuitBreakerFailures() int {
 	return c.circuitBreaker.Failures()
 }
+
+// RetryConfig holds retry configuration
+type RetryConfig struct {
+	MaxAttempts int
+	Delays      []time.Duration
+}
+
+// GetRetryDelay returns the delay duration for a given attempt (1-indexed)
+// Uses exponential backoff: 1s, 5s, 30s for attempts 1, 2, 3
+func GetRetryDelay(attempt int, delays []time.Duration) time.Duration {
+	if attempt <= 0 {
+		return delays[0]
+	}
+	idx := attempt - 1
+	if idx >= len(delays) {
+		idx = len(delays) - 1
+	}
+	return delays[idx]
+}
+
+// ShouldRetry determines if an error is retryable
+// Returns true for transient errors like network timeouts, connection issues
+func ShouldRetry(err error) bool {
+	if err == nil {
+		return false
+	}
+
+	errStr := err.Error()
+
+	// Non-retryable errors
+	nonRetryable := []string{
+		"circuit breaker is open",
+		"invalid phone",
+		"nomor",
+		"400",
+		"401",
+		"403",
+		"404",
+	}
+
+	for _, pattern := range nonRetryable {
+		if containsString(errStr, pattern) {
+			return false
+		}
+	}
+
+	// Retryable errors - network issues, timeouts, server errors
+	retryable := []string{
+		"timeout",
+		"context deadline exceeded",
+		"connection refused",
+		"connection reset",
+		"no such host",
+		"network is unreachable",
+		"i/o timeout",
+		"EOF",
+		"server misbehaving",
+		"500",
+		"502",
+		"503",
+		"504",
+	}
+
+	for _, pattern := range retryable {
+		if containsString(errStr, pattern) {
+			return true
+		}
+	}
+
+	// Default to retry for unknown errors (conservative approach)
+	return true
+}
+
+// containsString checks if a string contains a pattern (case-insensitive for some)
+func containsString(s, pattern string) bool {
+	return len(s) >= len(pattern) && (s == pattern || len(s) > len(pattern) && containsSubstring(s, pattern))
+}
+
+// containsSubstring is a simple substring check
+func containsSubstring(s, pattern string) bool {
+	for i := 0; i <= len(s)-len(pattern); i++ {
+		if s[i:i+len(pattern)] == pattern {
+			return true
+		}
+	}
+	return false
+}

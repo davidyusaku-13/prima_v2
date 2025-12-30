@@ -8,16 +8,16 @@ server:
 
 gowa:
   # GOWA WhatsApp Gateway settings
-  endpoint: "http://localhost:3000"
-  user: "admin"
-  password: "your-gowa-password"
-  webhook_secret: "your-webhook-secret"
+  # endpoint: "http://localhost:3000"
+  # user: "admin"
+  # password: "your-gowa-password"
+  # webhook_secret: "your-webhook-secret"
   timeout: 30s
 
 circuit_breaker:
   # Circuit breaker for GOWA service
-  failure_threshold: 5      # Number of failures before opening circuit
-  cooldown_duration: 5m     # Time to wait before retrying after circuit opens
+  failure_threshold: 5 # Number of failures before opening circuit
+  cooldown_duration: 5m # Time to wait before retrying after circuit opens
 
 retry:
   # Retry settings for failed deliveries
@@ -30,5 +30,17 @@ retry:
     - 10m
 
 logging:
-  level: "info"             # debug, info, warn, error
-  format: "json"            # json or text
+  level: "info" # debug, info, warn, error
+  format: "json" # json or text
+
+disclaimer:
+  # Health disclaimer appended to WhatsApp messages
+  text: "Informasi ini untuk tujuan edukasi. Konsultasikan dengan tenaga kesehatan untuk kondisi spesifik Anda."
+  enabled: true # Set to false to disable disclaimer
+
+quiet_hours:
+  # Quiet hours prevent reminders from being sent during inappropriate times
+  # Reminders scheduled during quiet hours will be queued and sent at end_hour
+  start_hour: 21 # 9 PM WIB - start of quiet hours
+  end_hour: 6    # 6 AM WIB - end of quiet hours (reminders sent at this time)
+  timezone: "WIB" # UTC+7 (Western Indonesia Time)

@@ -10,5 +10,7 @@ _bmad-output/
 _bmad/
 node_modules
 CLAUDE.md
+AGENTS.md
 GOWA-README.md
 QUILL.md
+tmp.log

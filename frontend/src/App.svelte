@@ -23,28 +23,35 @@
   import VideoModal from '$lib/components/VideoModal.svelte';
   import VideoEditModal from '$lib/components/VideoEditModal.svelte';
   import SendReminderModal from '$lib/components/SendReminderModal.svelte';
+  import PhoneEditModal from '$lib/components/PhoneEditModal.svelte';
+  import FailedReminderBadge from '$lib/components/indicators/FailedReminderBadge.svelte';
+  import Toast from '$lib/components/ui/Toast.svelte';
 
   // API
   import * as api from '$lib/utils/api.js';
 
+  // Stores
+  import { toastStore } from '$lib/stores/toast.svelte.js';
+  import { deliveryStore } from '$lib/stores/delivery.svelte.js';
+
   // Auth state
-  let token = localStorage.getItem('token') || null;
-  let user = null;
-  let authLoading = true;
+  let token = $state(localStorage.getItem('token') || null);
+  let user = $state(null);
+  let authLoading = $state(true);
 
   // State
-  let patients = [];
-  let users = [];
-  let loading = true;
-  let currentView = localStorage.getItem('currentView') || 'dashboard';
+  let patients = $state([]);
+  let users = $state([]);
+  let loading = $state(true);
+  let currentView = $state(localStorage.getItem('currentView') || 'dashboard');
 
   // Auth forms
-  let showAuthModal = false;
-  let showProfileModal = false;
-  let authMode = 'login';
-  let authError = '';
-  let loginForm = { username: '', password: '' };
-  let registerForm = { username: '', password: '', confirmPassword: '', fullName: '' };
+  let showAuthModal = $state(false);
+  let showProfileModal = $state(false);
+  let authMode = $state('login');
+  let authError = $state('');
+  let loginForm = $state({ username: '', password: '' });
+  let registerForm = $state({ username: '', password: '', confirmPassword: '', fullName: '' });
 
   // Password validation
   function getPasswordStrength(password) {
@@ -57,57 +64,66 @@
     return score;
   }
 
-  $: passwordStrength = getPasswordStrength(registerForm.password);
-  $: passwordMatch = registerForm.password && registerForm.confirmPassword && registerForm.password === registerForm.confirmPassword;
-  $: usernameValid = registerForm.username.length >= 3;
-  $: formValid = usernameValid && registerForm.password.length >= 6 && passwordMatch;
+  let passwordStrength = $derived(getPasswordStrength(registerForm.password));
+  let passwordMatch = $derived(registerForm.password && registerForm.confirmPassword && registerForm.password === registerForm.confirmPassword);
+  let usernameValid = $derived(registerForm.username.length >= 3);
+  let formValid = $derived(usernameValid && registerForm.password.length >= 6 && passwordMatch);
 
   // Form states
-  let showPatientModal = false;
-  let showReminderModal = false;
-  let editingPatient = null;
-  let editingReminder = null;
-  let patientForm = { name: '', phone: '', email: '', notes: '' };
+  let showPatientModal = $state(false);
+  let showReminderModal = $state(false);
+  let editingPatient = $state(null);
+  let editingReminder = $state(null);
+  let patientForm = $state({ name: '', phone: '', email: '', notes: '' });
 
-  let showUserModal = false;
-  let editingUser = null;
-  let userForm = { role: 'volunteer', username: '', password: '' };
-  let userFormLoading = false;
+  let showUserModal = $state(false);
+  let editingUser = $state(null);
+  let userForm = $state({ role: 'volunteer', username: '', password: '' });
+  let userFormLoading = $state(false);
 
-  let reminderForm = {
+  let reminderForm = $state({
     patientId: '',
     title: '',
     description: '',
     dueDate: '',
     priority: 'medium',
-    recurrence: { frequency: 'none', interval: 1, daysOfWeek: [], endDate: '' }
-  };
+    recurrence: { frequency: 'none', interval: 1, daysOfWeek: [], endDate: '' },
+    attachments: []
+  });
 
   // Confirm modal state
-  let showConfirmModal = false;
-  let confirmMessage = '';
-  let confirmCallback = null;
-  let confirmContext = null;
+  let showConfirmModal = $state(false);
+  let confirmMessage = $state('');
+  let confirmCallback = $state(null);
+  let confirmContext = $state(null);
 
   // Filters
-  let searchQuery = '';
+  let searchQuery = $state('');
 
   // CMS State
-  let showArticleEditor = false;
-  let editingArticle = null;
-  let showVideoManager = false;
-  let showVideoModal = false;
-  let showVideoEditModal = false;
-  let editingVideo = null;
-  let currentVideo = null;
-  let currentArticleId = localStorage.getItem('currentArticleId') || null;
+  let showArticleEditor = $state(false);
+  let editingArticle = $state(null);
+  let showVideoManager = $state(false);
+  let showVideoModal = $state(false);
+  let showVideoEditModal = $state(false);
+  let editingVideo = $state(null);
+  let currentVideo = $state(null);
+  let currentArticleId = $state(localStorage.getItem('currentArticleId') || null);
 
   // Send Reminder Modal State
-  let showSendReminderModal = false;
-  let sendReminderPatient = null;
-  let sendReminderReminder = null;
-  let sendReminderStatus = 'idle'; // 'idle' | 'sending' | 'success' | 'error'
-  let sendReminderError = '';
+  let showSendReminderModal = $state(false);
+  let sendReminderPatient = $state(null);
+  let sendReminderReminder = $state(null);
+  let sendReminderStatus = $state('idle'); // 'idle' | 'sending' | 'success' | 'error' | 'scheduled'
+  let sendReminderError = $state('');
+  let quietHoursConfig = $state(null);
+  let isCurrentlyQuietHours = $state(false);
+  let scheduledDeliveryTime = $state(null);
+
+  // Phone Edit Modal State
+  let showPhoneEditModal = $state(false);
+  let phoneEditPatient = $state(null);
+  let phoneEditReminder = $state(null);
 
   // CMS Functions
   function openArticleEditor(article = null) {
@@ -182,12 +198,12 @@
   });
 
   // Stats
-  $: stats = {
+  let stats = $derived({
     totalPatients: patients.length,
     totalReminders: patients.reduce((acc, p) => acc + (p.reminders?.length || 0), 0),
     completedReminders: patients.reduce((acc, p) => acc + (p.reminders?.filter(r => r.completed).length || 0), 0),
     pendingReminders: patients.reduce((acc, p) => acc + (p.reminders?.filter(r => !r.completed).length || 0), 0)
-  };
+  });
 
   // Auth functions
   async function fetchUser() {
@@ -345,7 +361,8 @@
         description: reminder.description || '',
         dueDate: reminder.dueDate || '',
         priority: reminder.priority || 'medium',
-        recurrence: reminder.recurrence || { frequency: 'none', interval: 1, daysOfWeek: [], endDate: '' }
+        recurrence: reminder.recurrence || { frequency: 'none', interval: 1, daysOfWeek: [], endDate: '' },
+        attachments: reminder.attachments || []
       };
     } else {
       reminderForm = {
@@ -354,7 +371,8 @@
         description: '',
         dueDate: '',
         priority: 'medium',
-        recurrence: { frequency: 'none', interval: 1, daysOfWeek: [], endDate: '' }
+        recurrence: { frequency: 'none', interval: 1, daysOfWeek: [], endDate: '' },
+        attachments: []
       };
     }
     showReminderModal = true;
@@ -369,7 +387,8 @@
       description: '',
       dueDate: '',
       priority: 'medium',
-      recurrence: { frequency: 'none', interval: 1, daysOfWeek: [], endDate: '' }
+      recurrence: { frequency: 'none', interval: 1, daysOfWeek: [], endDate: '' },
+      attachments: []
     };
   }
 
@@ -383,11 +402,25 @@
   }
 
   // Send Reminder functions
-  function openSendReminderModal(patient, reminder) {
+  async function openSendReminderModal(patient, reminder) {
     sendReminderPatient = patient;
     sendReminderReminder = reminder;
     sendReminderStatus = 'idle';
     sendReminderError = '';
+    scheduledDeliveryTime = null;
+
+    // Fetch quiet hours config and check if currently in quiet hours
+    try {
+      quietHoursConfig = await api.fetchQuietHoursConfig();
+      isCurrentlyQuietHours = api.isQuietHours(quietHoursConfig);
+      if (isCurrentlyQuietHours) {
+        scheduledDeliveryTime = api.getNextActiveTime(quietHoursConfig);
+      }
+    } catch (e) {
+      console.error('Failed to fetch quiet hours config:', e);
+      isCurrentlyQuietHours = false;
+    }
+
     showSendReminderModal = true;
   }
 
@@ -397,6 +430,8 @@
     sendReminderReminder = null;
     sendReminderStatus = 'idle';
     sendReminderError = '';
+    isCurrentlyQuietHours = false;
+    scheduledDeliveryTime = null;
   }
 
   async function handleSendReminder() {
@@ -425,6 +460,90 @@
       sendReminderError = e.message || 'Failed to send reminder';
       // Revert optimistic update on error
       await loadPatients();
+    }
+  }
+
+  // Retry failed reminder
+  async function handleRetryReminder(patient, reminder) {
+    // Optimistic UI update - set reminder status to 'sending' locally
+    deliveryStore.updateStatus(reminder.id, 'sending');
+
+    try {
+      const result = await api.retryReminder(token, reminder.id);
+
+      // Update delivery store with new status
+      deliveryStore.updateStatus(reminder.id, result.status);
+
+      // Show appropriate toast based on status
+      if (result.status === 'queued') {
+        toastStore.show({
+          type: 'warning',
+          message: $t('reminder.retry.queued_success')
+        });
+      } else {
+        toastStore.show({
+          type: 'success',
+          message: $t('reminder.retry.success')
+        });
+      }
+
+      // Refresh patients to get updated data
+      await loadPatients();
+    } catch (error) {
+      // Revert to failed state
+      deliveryStore.updateStatus(reminder.id, 'failed', error.message);
+
+      // Show error toast with specific message based on error code
+      console.error('Retry failed:', error);
+
+      // Handle INVALID_PHONE error with phone edit modal
+      if (error.code === 'INVALID_PHONE') {
+        phoneEditPatient = patient;
+        phoneEditReminder = reminder;
+        showPhoneEditModal = true;
+        return; // Don't show toast, modal will handle it
+      }
+
+      let toastMessage = $t('reminder.retry.error');
+
+      if (error.code === 'CIRCUIT_BREAKER_OPEN') {
+        toastMessage = $t('reminder.retry.circuit_breaker_open');
+      } else if (error.code === 'INVALID_STATUS') {
+        toastMessage = $t('reminder.retry.invalid_status');
+      }
+
+      toastStore.show({
+        type: 'error',
+        message: toastMessage
+      });
+
+      // Refresh patients to sync state
+      await loadPatients();
+    }
+  }
+
+  // Handle phone update and retry
+  async function handlePhoneUpdateAndRetry(newPhone) {
+    showPhoneEditModal = false;
+
+    try {
+      // Update patient phone number
+      await api.updatePatient(token, phoneEditPatient.id, {
+        ...phoneEditPatient,
+        phone: newPhone
+      });
+
+      // Refresh patients to get updated data
+      await loadPatients();
+
+      // Retry the reminder with updated phone
+      await handleRetryReminder(phoneEditPatient, phoneEditReminder);
+    } catch (error) {
+      console.error('Failed to update phone:', error);
+      toastStore.show({
+        type: 'error',
+        message: $t('patient.updateFailed')
+      });
     }
   }
 
@@ -484,6 +603,10 @@
   function navigateTo(view) {
     currentView = view;
     localStorage.setItem('currentView', view);
+
+    // Clear toasts on navigation to prevent stale notifications
+    toastStore.clear();
+
     if (view === 'users') loadUsers();
     if (view === 'berita-detail' && !currentArticleId) {
       currentView = 'berita';
@@ -548,6 +671,11 @@
     onLogout={logout}
   />
 
+  <!-- Failed Reminder Badge - Persistent indicator in navigation -->
+  <div class="fixed top-4 left-4 lg:left-72 z-40">
+    <FailedReminderBadge />
+  </div>
+
   <main class="flex-1 lg:ml-64 p-3 sm:p-4 md:p-5 lg:p-6 xl:p-8 min-h-screen pb-24 lg:pb-6">
     <div class="max-w-7xl mx-auto">
     {#if loading}
@@ -567,6 +695,7 @@
           onToggleReminder={toggleReminder}
           onDeleteReminder={deleteReminder}
           onSendReminder={openSendReminderModal}
+          onRetryReminder={handleRetryReminder}
         />
       {:else if currentView === 'users' && user?.role === 'superadmin'}
         <UsersView
@@ -621,7 +750,7 @@
   <PatientModal
     show={showPatientModal}
     {editingPatient}
-    {patientForm}
+    bind:patientForm
     onClose={closePatientModal}
     onSave={savePatient}
   />
@@ -630,8 +759,9 @@
   <ReminderModal
     show={showReminderModal}
     {editingReminder}
-    {reminderForm}
+    bind:reminderForm
     patient={patients.find(p => p.id === reminderForm.patientId) || null}
+    userRole={user?.role || 'volunteer'}
     onClose={closeReminderModal}
     onSave={saveReminder}
     onToggleDay={toggleDayOfWeek}
@@ -699,7 +829,21 @@
     reminder={sendReminderReminder}
     status={sendReminderStatus}
     errorMessage={sendReminderError}
+    isQuietHours={isCurrentlyQuietHours}
+    scheduledTime={scheduledDeliveryTime}
     onClose={closeSendReminderModal}
     onConfirm={handleSendReminder}
   />
+
+  <!-- Phone Edit Modal -->
+  <PhoneEditModal
+    show={showPhoneEditModal}
+    patientName={phoneEditPatient?.name || ''}
+    currentPhone={phoneEditPatient?.phone || ''}
+    onClose={() => showPhoneEditModal = false}
+    onConfirm={handlePhoneUpdateAndRetry}
+  />
+
+  <!-- Toast Notifications - Global -->
+  <Toast />
 {/if}

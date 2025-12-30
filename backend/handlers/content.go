@@ -4,11 +4,14 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"os"
 	"path/filepath"
+	"sort"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -18,11 +21,57 @@ import (
 	"github.com/davidyusaku-13/prima_v2/utils"
 )
 
+// UserInfo represents user information for author attribution
+type UserInfo struct {
+	ID        string `json:"id"`
+	Username  string `json:"username"`
+	FullName  string `json:"fullName,omitempty"`
+	Role      string `json:"role"`
+	CreatedAt string `json:"createdAt"`
+}
+
 // ContentStore holds all content stores
 type ContentStore struct {
-	Categories *models.CategoryStore
-	Articles   *models.ArticleStore
-	Videos     *models.VideoStore
+	Categories  *models.CategoryStore
+	Articles    *models.ArticleStore
+	Videos      *models.VideoStore
+	userStore   map[string]*UserInfo // For author name resolution (key: userID)
+	userStoreMu sync.RWMutex
+}
+
+// SetUserStore sets the user store for author name resolution
+func (cs *ContentStore) SetUserStore(userStore map[string]*UserInfo) {
+	cs.userStoreMu.Lock()
+	cs.userStore = userStore
+	cs.userStoreMu.Unlock()
+}
+
+// GetAuthorName returns the author name for a given author ID
+func (cs *ContentStore) GetAuthorName(authorID string) string {
+	if authorID == "" {
+		return ""
+	}
+	cs.userStoreMu.RLock()
+	defer cs.userStoreMu.RUnlock()
+	if user, exists := cs.userStore[authorID]; exists {
+		return user.FullName
+	}
+	// Log warning for debugging - author ID not found in user store
+	log.Printf("WARNING: Author ID '%s' not found in user store", authorID)
+	return ""
+}
+
+// AddUserToStore adds a new user to the user store for author attribution
+func (cs *ContentStore) AddUserToStore(user *UserInfo) {
+	if user == nil {
+		return
+	}
+	cs.userStoreMu.Lock()
+	defer cs.userStoreMu.Unlock()
+	if cs.userStore == nil {
+		cs.userStore = make(map[string]*UserInfo)
+	}
+	cs.userStore[user.ID] = user
 }
 
 // NewContentStore creates a new content store
@@ -294,6 +343,12 @@ func (cs *ContentStore) ListArticles(c *gin.Context) {
 	cs.Articles.Mu.RUnlock()
 
 	c.JSON(http.StatusOK, gin.H{"articles": articles})
+}
+
+// ArticleWithAuthor is Article with author name resolved
+type ArticleWithAuthor struct {
+	*models.Article
+	AuthorName string `json:"authorName,omitempty"`
 }
 
 // GetArticle returns an article by slug
@@ -807,4 +862,181 @@ func StrToInt(s string) int {
 		return 0
 	}
 	return i
+}
+
+// ListAllContent returns all published articles and videos, optionally filtered by type
+// Query params: type (article|video|all), category (category ID)
+// Uses UserStore if available to include author names
+func (cs *ContentStore) ListAllContent(c *gin.Context) {
+	contentType := c.Query("type")
+	categoryID := c.Query("category")
+
+	// Check if UserStore is available for author name resolution
+	hasUserStore := cs.userStore != nil
+
+	articles := make([]interface{}, 0)
+	videos := make([]*models.Video, 0)
+
+	// Only fetch articles if type is "all", "article", or not specified
+	if contentType == "" || contentType == "all" || contentType == "article" {
+		cs.Articles.Mu.RLock()
+		for _, art := range cs.Articles.Articles {
+			// Only show published articles
+			if art.Status != models.ArticleStatusPublished {
+				continue
+			}
+
+			// Filter by category if specified
+			if categoryID != "" && art.CategoryID != categoryID {
+				continue
+			}
+
+			// Always include author name when userStore is available
+			authorName := ""
+			if hasUserStore {
+				authorName = cs.GetAuthorName(art.AuthorID)
+			}
+			articles = append(articles, &ArticleWithAuthor{
+				Article:    art,
+				AuthorName: authorName,
+			})
+		}
+		cs.Articles.Mu.RUnlock()
+	}
+
+	// Only fetch videos if type is "all", "video", or not specified
+	if contentType == "" || contentType == "all" || contentType == "video" {
+		cs.Videos.Mu.RLock()
+		for _, vid := range cs.Videos.Videos {
+			// Only show published videos
+			if vid.Status != models.VideoStatusPublished {
+				continue
+			}
+
+			// Filter by category if specified
+			if categoryID != "" && vid.CategoryID != categoryID {
+				continue
+			}
+
+			videos = append(videos, vid)
+		}
+		cs.Videos.Mu.RUnlock()
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"articles": articles,
+		"videos":   videos,
+	})
+}
+
+// PopularContentItem represents a popular content item for the response
+type PopularContentItem struct {
+	ID        string `json:"id"`
+	Type      string `json:"type"` // "article" or "video"
+	Title     string `json:"title"`
+	Thumbnail string `json:"thumbnail,omitempty"`
+}
+
+// GetPopularContent returns the most frequently attached content items
+// Query params: limit (default 5)
+func (cs *ContentStore) GetPopularContent(c *gin.Context) {
+	limit := StrToInt(c.DefaultQuery("limit", "5"))
+	if limit <= 0 {
+		limit = 5
+	}
+	if limit > 20 {
+		limit = 20
+	}
+
+	type scoredContent struct {
+		item   PopularContentItem
+		score  int
+	}
+
+	scored := make([]scoredContent, 0)
+
+	// Score articles by attachment count
+	cs.Articles.Mu.RLock()
+	for _, art := range cs.Articles.Articles {
+		if art.Status != models.ArticleStatusPublished {
+			continue
+		}
+		scored = append(scored, scoredContent{
+			item: PopularContentItem{
+				ID:        art.ID,
+				Type:      "article",
+				Title:     art.Title,
+				Thumbnail: art.HeroImages.Hero1x1,
+			},
+			score: art.AttachmentCount,
+		})
+	}
+	cs.Articles.Mu.RUnlock()
+
+	// Score videos by attachment count
+	cs.Videos.Mu.RLock()
+	for _, vid := range cs.Videos.Videos {
+		if vid.Status != models.VideoStatusPublished {
+			continue
+		}
+		scored = append(scored, scoredContent{
+			item: PopularContentItem{
+				ID:        vid.ID,
+				Type:      "video",
+				Title:     vid.Title,
+				Thumbnail: vid.ThumbnailURL,
+			},
+			score: vid.AttachmentCount,
+		})
+	}
+	cs.Videos.Mu.RUnlock()
+
+	// Sort by attachment count descending using sort.Slice (O(n log n))
+	sort.Slice(scored, func(i, j int) bool {
+		return scored[i].score > scored[j].score
+	})
+
+	// Take top N items
+	result := make([]PopularContentItem, 0, limit)
+	for i := 0; i < len(scored) && i < limit; i++ {
+		result = append(result, scored[i].item)
+	}
+
+	c.JSON(http.StatusOK, gin.H{"content": result})
+}
+
+// IncrementAttachmentCount increments the attachment count for content
+func (cs *ContentStore) IncrementAttachmentCount(c *gin.Context) {
+	contentType := c.Param("type")
+	contentID := c.Param("id")
+
+	if contentType != "article" && contentType != "video" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid content type"})
+		return
+	}
+
+	cs.Articles.Mu.Lock()
+	cs.Videos.Mu.Lock()
+
+	if contentType == "article" {
+		if art, ok := cs.Articles.Articles[contentID]; ok {
+			art.AttachmentCount++
+		}
+	} else {
+		if vid, ok := cs.Videos.Videos[contentID]; ok {
+			vid.AttachmentCount++
+		}
+	}
+
+	cs.Articles.Mu.Unlock()
+	cs.Videos.Mu.Unlock()
+
+	// Save asynchronously
+	if contentType == "article" {
+		cs.saveArticles()
+	} else {
+		cs.saveVideos()
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "attachment count incremented"})
 }

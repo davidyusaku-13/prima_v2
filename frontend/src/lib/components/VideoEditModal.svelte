@@ -74,11 +74,13 @@
   <div
     class="min-h-screen flex items-start justify-center p-4 pt-10"
     onclick={(e) => e.stopPropagation()}
+    onkeydown={(e) => e.key === 'Escape' && onClose()}
     role="presentation"
   >
     <div
       class="w-full max-w-lg bg-white rounded-2xl shadow-2xl"
       onclick={(e) => e.stopPropagation()}
+      onkeydown={(e) => e.stopPropagation()}
       role="dialog"
       aria-modal="true"
       tabindex="-1"
@@ -114,10 +116,11 @@
 
         <!-- YouTube URL (read-only) -->
         <div>
-          <label class="block text-sm font-medium text-slate-700 mb-1">
+          <label for="youtube-url" class="block text-sm font-medium text-slate-700 mb-1">
             {$t('videoManager.youtubeUrl')}
           </label>
           <input
+            id="youtube-url"
             type="text"
             value={video?.youtube_url || ''}
             disabled
@@ -126,34 +129,41 @@
         </div>
 
         <!-- Title -->
-        <label class="block text-sm font-medium text-slate-700 mb-1">
-          {$t('videoManager.videoTitle')}
-          <span class="text-red-500">*</span>
+        <div>
+          <label for="video-title" class="block text-sm font-medium text-slate-700 mb-1">
+            {$t('videoManager.videoTitle')}
+            <span class="text-red-500">*</span>
+          </label>
           <input
+            id="video-title"
             type="text"
             bind:value={title}
             placeholder={$t('videoManager.titlePlaceholder')}
             class="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500"
           />
-        </label>
+        </div>
 
         <!-- Description -->
-        <label class="block text-sm font-medium text-slate-700 mb-1">
-          {$t('videoManager.description')}
+        <div>
+          <label for="video-description" class="block text-sm font-medium text-slate-700 mb-1">
+            {$t('videoManager.description')}
+          </label>
           <textarea
+            id="video-description"
             bind:value={description}
             placeholder={$t('videoManager.descriptionPlaceholder')}
             rows="3"
             class="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500 resize-none"
           ></textarea>
-        </label>
+        </div>
 
         <!-- Category (read-only) -->
         <div>
-          <label class="block text-sm font-medium text-slate-700 mb-1">
+          <label for="video-category" class="block text-sm font-medium text-slate-700 mb-1">
             {$t('videoManager.category')}
           </label>
           <input
+            id="video-category"
             type="text"
             value={video?.category_id ? getCategoryLabel(video.category_id) : ''}
             disabled

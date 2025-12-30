@@ -1,10 +1,41 @@
 <script>
   import { t } from 'svelte-i18n';
   import { locale } from 'svelte-i18n';
+  import DeliveryStatusFilter from '$lib/components/delivery/DeliveryStatusFilter.svelte';
+  import { deliveryStore } from '$lib/stores/delivery.svelte.js';
+  import { onMount } from 'svelte';
 
-  export let patients = [];
-  export let onToggleReminder = () => {};
-  export let onViewAllPatients = () => {};
+  let {
+    patients = [],
+    onToggleReminder = () => {},
+    onViewAllPatients = () => {}
+  } = $props();
+
+  // Reactive delivery status from store (Svelte 5 runes)
+  let deliveryStatuses = $derived(deliveryStore.deliveryStatuses);
+
+  // Filter state with session persistence (independent from PatientsView)
+  let selectedFilter = $state(
+    typeof window !== 'undefined'
+      ? sessionStorage.getItem('dashboardReminderFilter') || 'all'
+      : 'all'
+  );
+
+  // Save filter to session when changed
+  $effect(() => {
+    if (typeof window !== 'undefined') {
+      sessionStorage.setItem('dashboardReminderFilter', selectedFilter);
+    }
+  });
+
+  // Initialize SSE connection on mount
+  onMount(() => {
+    deliveryStore.connect();
+
+    return () => {
+      deliveryStore.disconnect();
+    };
+  });
 
   function formatDate(dateStr) {
     if (!dateStr) return '';
@@ -46,17 +77,86 @@
     return colors[priority] || colors.medium;
   }
 
-  $: stats = {
+  // Check if a reminder should be displayed based on current filter
+  function shouldShowReminder(reminder) {
+    if (selectedFilter === 'all') {
+      return true;
+    }
+
+    const deliveryStatus = deliveryStatuses[reminder.id];
+    const status = deliveryStatus?.status || 'pending';
+
+    switch (selectedFilter) {
+      case 'pending':
+        return status === 'pending' || status === 'queued';
+      case 'sent':
+        return status === 'sent' || status === 'delivered' || status === 'read';
+      case 'failed':
+        return status === 'failed';
+      default:
+        return true;
+    }
+  }
+
+  // Handle filter change
+  function handleFilterChange(filterId) {
+    selectedFilter = filterId;
+  }
+
+  // Svelte 5: Use $derived instead of $: reactive statement
+  let stats = $derived({
     totalPatients: patients.length,
     totalReminders: patients.reduce((acc, p) => acc + (p.reminders?.length || 0), 0),
     completedReminders: patients.reduce((acc, p) => acc + (p.reminders?.filter(r => r.completed).length || 0), 0),
     pendingReminders: patients.reduce((acc, p) => acc + (p.reminders?.filter(r => !r.completed).length || 0), 0)
-  };
+  });
 
-  $: upcomingReminders = patients.flatMap(p =>
-    (p.reminders || []).filter(r => !r.completed && r.dueDate)
-      .map(r => ({ ...r, patientName: p.name, patientId: p.id }))
-  ).sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate)).slice(0, 5);
+  // Get all reminders from all patients
+  let allReminders = $derived(() => {
+    return patients.flatMap(p =>
+      (p.reminders || []).filter(r => !r.completed && r.dueDate)
+        .map(r => ({ ...r, patientName: p.name, patientId: p.id }))
+    ).sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate));
+  });
+
+  // Filter reminders based on selected filter
+  let upcomingReminders = $derived(() => {
+    const reminders = allReminders();
+
+    if (selectedFilter === 'all') {
+      return reminders.slice(0, 5);
+    }
+
+    return reminders.filter(r => shouldShowReminder(r)).slice(0, 5);
+  });
+
+  // Calculate counts for each filter
+  let filterCounts = $derived(() => {
+    const reminders = allReminders();
+    const counts = { all: reminders.length, pending: 0, sent: 0, failed: 0 };
+
+    reminders.forEach(reminder => {
+      const deliveryStatus = deliveryStatuses[reminder.id];
+      const status = deliveryStatus?.status || 'pending';
+
+      if (status === 'pending' || status === 'queued') {
+        counts.pending++;
+      } else if (status === 'sent' || status === 'delivered' || status === 'read') {
+        counts.sent++;
+      } else if (status === 'failed') {
+        counts.failed++;
+      }
+    });
+
+    // Defensive: ensure all counts are non-negative
+    return {
+      all: Math.max(0, counts.all),
+      pending: Math.max(0, counts.pending),
+      sent: Math.max(0, counts.sent),
+      failed: Math.max(0, counts.failed)
+    };
+  });
+
 </script>
 
 <!-- Header -->
@@ -131,11 +231,27 @@
     <div class="px-3 sm:px-4 lg:px-6 py-3 lg:py-4 border-b border-slate-100">
       <h2 class="text-sm sm:text-base lg:text-lg font-semibold text-slate-900">{$t('dashboard.upcomingReminders')}</h2>
     </div>
+    <!-- Delivery Status Filter -->
+    {#if allReminders().length > 0}
+      <div class="px-3 sm:px-4 lg:px-6 pt-3 lg:pt-4">
+        <DeliveryStatusFilter
+          selectedFilter={selectedFilter}
+          counts={filterCounts()}
+          onFilterChange={handleFilterChange}
+        />
+      </div>
+    {/if}
     <div class="p-3 sm:p-4 lg:p-6 space-y-2 sm:space-y-3 lg:space-y-4">
-      {#if upcomingReminders.length === 0}
-        <p class="text-slate-500 text-center py-4 sm:py-6 lg:py-8 text-sm">{$t('dashboard.noUpcomingReminders')}</p>
+      {#if upcomingReminders().length === 0}
+        <p class="text-slate-500 text-center py-4 sm:py-6 lg:py-8 text-sm">
+          {#if selectedFilter === 'all'}
+            {$t('dashboard.noUpcomingReminders')}
+          {:else}
+            {$t(`delivery.filter.empty.${selectedFilter}`)}
+          {/if}
+        </p>
       {:else}
-        {#each upcomingReminders as reminder}
+        {#each upcomingReminders() as reminder}
           <div class="flex items-start gap-2 sm:gap-3 p-2 sm:p-3 lg:p-4 rounded-lg lg:rounded-xl bg-slate-50 hover:bg-slate-100 transition-colors duration-200">
             <button
               onclick={() => onToggleReminder(reminder.patientId, reminder.id)}

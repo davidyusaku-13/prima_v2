@@ -1,10 +1,12 @@
 package handlers
 
 import (
+	"crypto/rand"
+	"encoding/hex"
 	"fmt"
 	"log/slog"
 	"net/http"
-	"strings"
+	"sort"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -25,22 +27,31 @@ type IDGenerator func() string
 
 // ReminderHandler handles reminder-related HTTP requests
 type ReminderHandler struct {
-	store      *models.PatientStore
-	config     *config.Config
-	gowaClient *services.GOWAClient
-	logger     *slog.Logger
-	generateID IDGenerator
+	store        *models.PatientStore
+	config       *config.Config
+	gowaClient   *services.GOWAClient
+	logger       *slog.Logger
+	generateID   IDGenerator
+	contentStore *ContentStore // Added for attachment validation and content lookup
+	sseHandler   *SSEHandler   // SSE handler for broadcasting delivery status updates
 }
 
 // NewReminderHandler creates a new reminder handler
-func NewReminderHandler(store *models.PatientStore, cfg *config.Config, gowaClient *services.GOWAClient, logger *slog.Logger, idGen IDGenerator) *ReminderHandler {
+func NewReminderHandler(store *models.PatientStore, cfg *config.Config, gowaClient *services.GOWAClient, logger *slog.Logger, idGen IDGenerator, contentStore *ContentStore) *ReminderHandler {
 	return &ReminderHandler{
-		store:      store,
-		config:     cfg,
-		gowaClient: gowaClient,
-		logger:     logger,
-		generateID: idGen,
+		store:        store,
+		config:       cfg,
+		gowaClient:   gowaClient,
+		logger:       logger,
+		generateID:   idGen,
+		contentStore: contentStore,
+		sseHandler:   nil, // Will be set via SetSSEHandler
 	}
+}
+
+// SetSSEHandler sets the SSE handler for broadcasting delivery status updates
+func (h *ReminderHandler) SetSSEHandler(sseHandler *SSEHandler) {
+	h.sseHandler = sseHandler
 }
 
 // CreateReminderRequest represents the request body for creating a reminder
@@ -63,6 +74,47 @@ type UpdateReminderRequest struct {
 	Attachments []models.Attachment `json:"attachments"`
 }
 
+// MaxAttachments is the maximum number of content attachments per reminder
+const MaxAttachments = 3
+
+// validateAttachments validates the attachments array
+func (h *ReminderHandler) validateAttachments(attachments []models.Attachment) error {
+	for i, att := range attachments {
+		if att.Type != "article" && att.Type != "video" {
+			return fmt.Errorf("attachment[%d]: type must be 'article' or 'video'", i)
+		}
+		if att.ID == "" {
+			return fmt.Errorf("attachment[%d]: id is required", i)
+		}
+		if att.Title == "" {
+			return fmt.Errorf("attachment[%d]: title is required", i)
+		}
+		if len(att.Title) > 200 {
+			return fmt.Errorf("attachment[%d]: title must not exceed 200 characters", i)
+		}
+
+		// Validate that attachment ID exists in content store
+		if h.contentStore != nil {
+			if att.Type == "article" {
+				h.contentStore.Articles.Mu.RLock()
+				if _, exists := h.contentStore.Articles.Articles[att.ID]; !exists {
+					h.contentStore.Articles.Mu.RUnlock()
+					return fmt.Errorf("attachment[%d]: article with id '%s' not found", i, att.ID)
+				}
+				h.contentStore.Articles.Mu.RUnlock()
+			} else if att.Type == "video" {
+				h.contentStore.Videos.Mu.RLock()
+				if _, exists := h.contentStore.Videos.Videos[att.ID]; !exists {
+					h.contentStore.Videos.Mu.RUnlock()
+					return fmt.Errorf("attachment[%d]: video with id '%s' not found", i, att.ID)
+				}
+				h.contentStore.Videos.Mu.RUnlock()
+			}
+		}
+	}
+	return nil
+}
+
 // Create handles POST /patients/:id/reminders
 func (h *ReminderHandler) Create(c *gin.Context) {
 	patientID := c.Param("id")
@@ -72,6 +124,26 @@ func (h *ReminderHandler) Create(c *gin.Context) {
 	var req CreateReminderRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Validate attachments count
+	if len(req.Attachments) > MaxAttachments {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":      fmt.Sprintf("Maksimal %d konten yang dapat dilampirkan", MaxAttachments),
+			"code":       "MAX_ATTACHMENTS_EXCEEDED",
+			"max_count":  MaxAttachments,
+			"actual":     len(req.Attachments),
+		})
+		return
+	}
+
+	// Validate attachments content
+	if err := h.validateAttachments(req.Attachments); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": err.Error(),
+			"code":  "INVALID_ATTACHMENT",
+		})
 		return
 	}
 
@@ -128,6 +200,26 @@ func (h *ReminderHandler) Update(c *gin.Context) {
 	var req UpdateReminderRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Validate attachments count
+	if len(req.Attachments) > MaxAttachments {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":      fmt.Sprintf("Maksimal %d konten yang dapat dilampirkan", MaxAttachments),
+			"code":       "MAX_ATTACHMENTS_EXCEEDED",
+			"max_count":  MaxAttachments,
+			"actual":     len(req.Attachments),
+		})
+		return
+	}
+
+	// Validate attachments content
+	if err := h.validateAttachments(req.Attachments); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": err.Error(),
+			"code":  "INVALID_ATTACHMENT",
+		})
 		return
 	}
 
@@ -328,19 +420,47 @@ func (h *ReminderHandler) Send(c *gin.Context) {
 		return
 	}
 
-	// 5. Update status to sending (optimistic)
+	// 5. Check quiet hours - schedule for later if in quiet hours
+	now := time.Now()
+	if utils.IsQuietHours(now, &h.config.QuietHours) {
+		scheduledTime := utils.GetNextActiveTime(now, &h.config.QuietHours)
+		reminder.DeliveryStatus = models.DeliveryStatusScheduled
+		reminder.ScheduledDeliveryAt = scheduledTime.Format(time.RFC3339)
+		h.store.Unlock()
+		h.store.SaveData()
+
+		if h.logger != nil {
+			h.logger.Info("Reminder scheduled for quiet hours",
+				"reminder_id", reminderID,
+				"patient_id", patientID,
+				"scheduled_at", reminder.ScheduledDeliveryAt,
+			)
+		}
+
+		c.JSON(http.StatusOK, gin.H{
+			"data":         reminder,
+			"message":      "Reminder dijadwalkan untuk dikirim jam 06:00",
+			"scheduled":    true,
+			"scheduled_at": reminder.ScheduledDeliveryAt,
+		})
+		return
+	}
+
+	// 6. Update status to sending (optimistic) - active hours
 	reminder.DeliveryStatus = models.DeliveryStatusSending
+	// Capture sentAt timestamp before GOWA call for accuracy
+	sentAt := time.Now().UTC()
 	h.store.Unlock()
 	h.store.SaveData()
 
-	// 6. Format message
+	// 7. Format message
 	message := h.formatReminderMessage(reminder, patient)
 
-	// 7. Send via GOWA (outside lock)
+	// 8. Send via GOWA (outside lock)
 	whatsappPhone := utils.FormatWhatsAppNumber(patient.Phone)
 	response, err := h.gowaClient.SendMessage(whatsappPhone, message)
 
-	// 8. Update status based on result
+	// 9. Update status based on result
 	h.store.Lock()
 	if err != nil {
 		// Check if circuit breaker is open - queue for retry (NFR-I2)
@@ -369,7 +489,40 @@ func (h *ReminderHandler) Send(c *gin.Context) {
 			return
 		}
 
-		// Regular failure - not queued
+		// Check if error is retryable and we haven't exceeded max attempts
+		if services.ShouldRetry(err) && reminder.RetryCount < h.config.Retry.MaxAttempts {
+			// Schedule retry with exponential backoff
+			retryDelay := services.GetRetryDelay(reminder.RetryCount, h.config.Retry.Delays)
+			nextRetryTime := time.Now().UTC().Add(retryDelay)
+			reminder.DeliveryStatus = models.DeliveryStatusRetrying
+			reminder.ScheduledDeliveryAt = nextRetryTime.Format(time.RFC3339)
+			reminder.DeliveryErrorMessage = err.Error()
+			reminder.RetryCount++
+
+			h.store.Unlock()
+			h.store.SaveData()
+
+			if h.logger != nil {
+				h.logger.Info("Reminder scheduled for retry - transient failure",
+					"reminder_id", reminderID,
+					"patient_id", patientID,
+					"retry_count", reminder.RetryCount,
+					"next_retry_at", nextRetryTime.Format(time.RFC3339),
+					"error", err.Error(),
+				)
+			}
+
+			c.JSON(http.StatusServiceUnavailable, gin.H{
+				"error":          "Pengiriman gagal, akan dicoba lagi",
+				"code":           "RETRY_SCHEDULED",
+				"retrying":       true,
+				"retry_count":    reminder.RetryCount,
+				"next_retry_at":  nextRetryTime.Format(time.RFC3339),
+			})
+			return
+		}
+
+		// Max retries exceeded or non-retryable error
 		reminder.DeliveryStatus = models.DeliveryStatusFailed
 		reminder.DeliveryErrorMessage = err.Error()
 
@@ -377,27 +530,38 @@ func (h *ReminderHandler) Send(c *gin.Context) {
 		h.store.SaveData()
 
 		if h.logger != nil {
-			h.logger.Error("Failed to send reminder",
+			h.logger.Error("Failed to send reminder - max retries or non-retryable",
 				"reminder_id", reminderID,
 				"phone", utils.MaskPhone(whatsappPhone),
+				"retry_count", reminder.RetryCount,
 				"error", err.Error(),
 			)
 		}
 
 		c.JSON(http.StatusServiceUnavailable, gin.H{
-			"error": reminder.DeliveryErrorMessage,
-			"code":  "GOWA_ERROR",
+			"error":        reminder.DeliveryErrorMessage,
+			"code":         "GOWA_ERROR",
+			"retry_count":  reminder.RetryCount,
 		})
 		return
 	}
 
-	// Success
+	// Success - use captured timestamp for accuracy
 	reminder.DeliveryStatus = models.DeliveryStatusSent
 	reminder.GOWAMessageID = response.MessageID
-	reminder.MessageSentAt = time.Now().UTC().Format(time.RFC3339)
+	reminder.MessageSentAt = sentAt.Format(time.RFC3339)
 	reminder.DeliveryErrorMessage = ""
 	h.store.Unlock()
 	h.store.SaveData()
+
+	// Broadcast SSE event for real-time UI updates
+	if h.sseHandler != nil {
+		h.sseHandler.BroadcastDeliveryStatusUpdate(
+			reminderID,
+			string(models.DeliveryStatusSent),
+			sentAt.Format(time.RFC3339),
+		)
+	}
 
 	if h.logger != nil {
 		h.logger.Info("Reminder sent successfully",
@@ -414,23 +578,80 @@ func (h *ReminderHandler) Send(c *gin.Context) {
 	})
 }
 
-// formatReminderMessage creates the WhatsApp message content
-func (h *ReminderHandler) formatReminderMessage(reminder *models.Reminder, patient *models.Patient) string {
-	var sb strings.Builder
+// buildContentAttachments builds ContentAttachment slice from reminder attachments
+// Looks up article/video content from content store to get excerpts and URLs
+// Sorts attachments: articles first, then videos (AC #3)
+func (h *ReminderHandler) buildContentAttachments(reminder *models.Reminder) []utils.ContentAttachment {
+	var attachments []utils.ContentAttachment
 
-	sb.WriteString(fmt.Sprintf("Halo %s,\n\n", patient.Name))
-	sb.WriteString(fmt.Sprintf("*%s*\n\n", reminder.Title))
+	for _, att := range reminder.Attachments {
+		contentAtt := utils.ContentAttachment{
+			Type:  att.Type,
+			Title: att.Title,
+		}
 
-	if reminder.Description != "" {
-		sb.WriteString(reminder.Description)
-		sb.WriteString("\n\n")
+		if h.contentStore != nil {
+			if att.Type == "article" {
+				// Look up article for excerpt
+				h.contentStore.Articles.Mu.RLock()
+				if article, exists := h.contentStore.Articles.Articles[att.ID]; exists {
+					contentAtt.Excerpt = article.Excerpt
+					// Generate article URL from slug
+					if article.Slug != "" {
+						contentAtt.URL = fmt.Sprintf("https://prima.app/artikel/%s", article.Slug)
+					}
+				} else {
+					// Article not found - use fallback text
+					contentAtt.Excerpt = "Konten tidak tersedia"
+				}
+				h.contentStore.Articles.Mu.RUnlock()
+			} else if att.Type == "video" {
+				// Look up video for YouTube ID
+				h.contentStore.Videos.Mu.RLock()
+				if video, exists := h.contentStore.Videos.Videos[att.ID]; exists {
+					// Generate YouTube URL from YouTube ID
+					if video.YouTubeID != "" {
+						contentAtt.URL = fmt.Sprintf("https://youtube.com/watch?v=%s", video.YouTubeID)
+					}
+				}
+				h.contentStore.Videos.Mu.RUnlock()
+			}
+		}
+
+		// Fallback to attachment URL if content store lookup didn't provide one
+		if contentAtt.URL == "" && att.URL != "" {
+			contentAtt.URL = att.URL
+		}
+
+		attachments = append(attachments, contentAtt)
 	}
 
-	// Add health disclaimer
-	sb.WriteString("---\n")
-	sb.WriteString("_Informasi ini untuk tujuan edukasi. Konsultasikan dengan tenaga kesehatan untuk kondisi spesifik Anda._")
+	// Sort attachments: articles first, then videos (AC #3 requirement)
+	sort.Slice(attachments, func(i, j int) bool {
+		if attachments[i].Type == attachments[j].Type {
+			// Same type - maintain original order based on reminder.Attachments
+			return false
+		}
+		return attachments[i].Type == "article"
+	})
 
-	return sb.String()
+	return attachments
+}
+
+// formatReminderMessage creates the WhatsApp message content with excerpts
+func (h *ReminderHandler) formatReminderMessage(reminder *models.Reminder, patient *models.Patient) string {
+	disclaimerEnabled := h.config.Disclaimer.Enabled != nil && *h.config.Disclaimer.Enabled
+
+	// Build content attachments with excerpts
+	contentAttachments := h.buildContentAttachments(reminder)
+
+	return utils.FormatReminderMessageWithExcerpts(utils.ReminderMessageParams{
+		PatientName:         patient.Name,
+		ReminderTitle:       reminder.Title,
+		ReminderDescription: reminder.Description,
+		DisclaimerText:      h.config.Disclaimer.Text,
+		DisclaimerEnabled:   disclaimerEnabled,
+	}, contentAttachments)
 }
 
 // DefaultIDGenerator generates a unique ID using timestamp and random string
@@ -438,13 +659,230 @@ func DefaultIDGenerator() string {
 	return time.Now().Format("20060102150405") + "-" + reminderRandomString(8)
 }
 
-// reminderRandomString generates a random string of n characters using crypto/rand
+// reminderRandomString generates a cryptographically secure random string of n characters
 func reminderRandomString(n int) string {
-	const letters = "abcdefghijklmnopqrstuvwxyz0123456789"
-	b := make([]byte, n)
-	for i := range b {
-		// Use time-based seed with index for variety
-		b[i] = letters[(time.Now().UnixNano()+int64(i))%int64(len(letters))]
+	bytes := make([]byte, n)
+	if _, err := rand.Read(bytes); err != nil {
+		// Fallback to time-based if crypto/rand fails (should never happen in practice)
+		for i := range bytes {
+			bytes[i] = byte(time.Now().UnixNano() + int64(i))
+		}
 	}
-	return string(b)
+	const letters = "abcdefghijklmnopqrstuvwxyz0123456789"
+	for i := range bytes {
+		bytes[i] = letters[int(bytes[i])%len(letters)]
+	}
+	return string(bytes)
+}
+
+// GenerateSecureID generates a cryptographically secure unique ID
+func GenerateSecureID() string {
+	bytes := make([]byte, 8)
+	if _, err := rand.Read(bytes); err != nil {
+		// Fallback to timestamp-based if crypto/rand fails
+		return time.Now().Format("20060102150405") + "-" + reminderRandomString(8)
+	}
+	return time.Now().Format("20060102150405") + "-" + hex.EncodeToString(bytes)[:8]
+}
+
+// GetReminderStatus handles GET /api/reminders/:id/status
+func (h *ReminderHandler) GetReminderStatus(c *gin.Context) {
+	reminderID := c.Param("id")
+
+	h.store.RLock()
+	defer h.store.RUnlock()
+
+	// Find the reminder across all patients
+	var foundReminder *models.Reminder
+	var patientID string
+
+	for pid, patient := range h.store.Patients {
+		for _, r := range patient.Reminders {
+			if r.ID == reminderID {
+				foundReminder = r
+				patientID = pid
+				break
+			}
+		}
+		if foundReminder != nil {
+			break
+		}
+	}
+
+	if foundReminder == nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "reminder not found", "code": "REMINDER_NOT_FOUND"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"data": gin.H{
+			"id":              foundReminder.ID,
+			"title":           foundReminder.Title,
+			"delivery_status": foundReminder.DeliveryStatus,
+			"retry_count":     foundReminder.RetryCount,
+			"max_attempts":    h.config.Retry.MaxAttempts,
+			"error_message":   foundReminder.DeliveryErrorMessage,
+			"scheduled_at":    foundReminder.ScheduledDeliveryAt,
+			"sent_at":         foundReminder.MessageSentAt,
+			"gowa_message_id": foundReminder.GOWAMessageID,
+			"patient_id":      patientID,
+		},
+	})
+}
+
+// RetryReminder handles POST /api/reminders/:id/retry
+func (h *ReminderHandler) RetryReminder(c *gin.Context) {
+	reminderID := c.Param("id")
+	userID := c.GetString("userID")
+	role := c.GetString("role")
+
+	// 1. Find reminder across all patients
+	h.store.Lock()
+	var patient *models.Patient
+	var reminder *models.Reminder
+
+	for _, p := range h.store.Patients {
+		for _, r := range p.Reminders {
+			if r.ID == reminderID {
+				patient = p
+				reminder = r
+				break
+			}
+		}
+		if reminder != nil {
+			break
+		}
+	}
+
+	if reminder == nil {
+		h.store.Unlock()
+		c.JSON(http.StatusNotFound, gin.H{"error": "Reminder not found", "code": "REMINDER_NOT_FOUND"})
+		return
+	}
+
+	// 2. Check RBAC - volunteers can only retry their own reminders
+	if role == RoleVolunteer && patient.CreatedBy != userID {
+		h.store.Unlock()
+		c.JSON(http.StatusForbidden, gin.H{"error": "insufficient permissions", "code": "FORBIDDEN"})
+		return
+	}
+
+	// 3. Validate reminder is in failed state
+	if reminder.DeliveryStatus != models.DeliveryStatusFailed {
+		h.store.Unlock()
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "Only failed reminders can be retried",
+			"code":  "INVALID_STATUS",
+		})
+		return
+	}
+
+	// 4. Validate phone number
+	phoneResult := utils.ValidatePhoneNumber(patient.Phone)
+	if !phoneResult.Valid {
+		h.store.Unlock()
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "Nomor WhatsApp tidak valid",
+			"code":  "INVALID_PHONE",
+		})
+		return
+	}
+
+	// 5. Check circuit breaker state
+	if !h.gowaClient.IsAvailable() {
+		// Queue reminder for retry when circuit breaker resets
+		reminder.DeliveryStatus = models.DeliveryStatusQueued
+		reminder.DeliveryErrorMessage = "GOWA sedang tidak tersedia. Akan dicoba lagi."
+		h.store.Unlock()
+		h.store.SaveData()
+
+		if h.logger != nil {
+			h.logger.Warn("Manual retry queued - circuit breaker open",
+				"reminder_id", reminderID,
+				"phone", utils.MaskPhone(utils.FormatWhatsAppNumber(patient.Phone)),
+			)
+		}
+
+		c.JSON(http.StatusOK, gin.H{
+			"data": gin.H{
+				"reminder_id": reminderID,
+				"status":      "queued",
+			},
+			"message": "GOWA sedang tidak tersedia. Reminder akan dikirim otomatis saat layanan kembali normal.",
+		})
+		return
+	}
+
+	// 6. Update status to sending (optimistic)
+	reminder.DeliveryStatus = models.DeliveryStatusSending
+	reminder.DeliveryErrorMessage = ""
+	sentAt := time.Now().UTC()
+	h.store.Unlock()
+	h.store.SaveData()
+
+	// 7. Format message
+	message := h.formatReminderMessage(reminder, patient)
+
+	// 8. Send via GOWA (outside lock)
+	whatsappPhone := utils.FormatWhatsAppNumber(patient.Phone)
+	response, err := h.gowaClient.SendMessage(whatsappPhone, message)
+
+	// 9. Update status based on result
+	h.store.Lock()
+	if err != nil {
+		// Retry failed
+		reminder.DeliveryStatus = models.DeliveryStatusFailed
+		reminder.DeliveryErrorMessage = err.Error()
+		h.store.Unlock()
+		h.store.SaveData()
+
+		if h.logger != nil {
+			h.logger.Error("Failed to retry reminder",
+				"reminder_id", reminderID,
+				"phone", utils.MaskPhone(whatsappPhone),
+				"error", err.Error(),
+			)
+		}
+
+		c.JSON(http.StatusServiceUnavailable, gin.H{
+			"error": reminder.DeliveryErrorMessage,
+			"code":  "GOWA_ERROR",
+		})
+		return
+	}
+
+	// Success - reset retry count
+	reminder.DeliveryStatus = models.DeliveryStatusSent
+	reminder.GOWAMessageID = response.MessageID
+	reminder.MessageSentAt = sentAt.Format(time.RFC3339)
+	reminder.DeliveryErrorMessage = ""
+	reminder.RetryCount = 0 // Reset retry count on manual retry
+	h.store.Unlock()
+	h.store.SaveData()
+
+	// Broadcast SSE event for real-time UI updates
+	if h.sseHandler != nil {
+		h.sseHandler.BroadcastDeliveryStatusUpdate(
+			reminderID,
+			string(models.DeliveryStatusSent),
+			sentAt.Format(time.RFC3339),
+		)
+	}
+
+	if h.logger != nil {
+		h.logger.Info("Reminder retried successfully",
+			"reminder_id", reminderID,
+			"phone", utils.MaskPhone(whatsappPhone),
+			"gowa_message_id", response.MessageID,
+		)
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"data": gin.H{
+			"reminder_id": reminderID,
+			"status":      "sent",
+			"message_id":  response.MessageID,
+		},
+		"message": "Reminder berhasil dikirim ulang",
+	})
 }

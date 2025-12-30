@@ -236,3 +236,197 @@ func TestNewGOWAClientFromConfig(t *testing.T) {
 		t.Errorf("Expected endpoint 'http://localhost:3000', got '%s'", client.endpoint)
 	}
 }
+
+func TestGetRetryDelay(t *testing.T) {
+	delays := []time.Duration{
+		1 * time.Second,
+		5 * time.Second,
+		30 * time.Second,
+	}
+
+	tests := []struct {
+		name     string
+		attempt  int
+		expected time.Duration
+	}{
+		{"first attempt (0)", 0, 1 * time.Second},
+		{"first retry (1)", 1, 1 * time.Second},
+		{"second retry (2)", 2, 5 * time.Second},
+		{"third retry (3)", 3, 30 * time.Second},
+		{"exceeding retries (4)", 4, 30 * time.Second},
+		{"exceeding retries (10)", 10, 30 * time.Second},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := GetRetryDelay(tt.attempt, delays)
+			if result != tt.expected {
+				t.Errorf("GetRetryDelay(%d) = %v, want %v", tt.attempt, result, tt.expected)
+			}
+		})
+	}
+}
+
+func TestShouldRetry(t *testing.T) {
+	tests := []struct {
+		name        string
+		err         error
+		shouldRetry bool
+	}{
+		// Non-retryable errors
+		{
+			name:        "nil error",
+			err:         nil,
+			shouldRetry: false,
+		},
+		{
+			name:        "circuit breaker open",
+			err:         &testError{msg: "circuit breaker is open"},
+			shouldRetry: false,
+		},
+		{
+			name:        "invalid phone",
+			err:         &testError{msg: "invalid phone number"},
+			shouldRetry: false,
+		},
+		{
+			name:        "nomor error",
+			err:         &testError{msg: "nomor HP tidak valid"},
+			shouldRetry: false,
+		},
+		{
+			name:        "400 Bad Request",
+			err:         &testError{msg: "400 Bad Request"},
+			shouldRetry: false,
+		},
+		{
+			name:        "401 Unauthorized",
+			err:         &testError{msg: "401 Unauthorized"},
+			shouldRetry: false,
+		},
+		{
+			name:        "403 Forbidden",
+			err:         &testError{msg: "403 Forbidden"},
+			shouldRetry: false,
+		},
+		{
+			name:        "404 Not Found",
+			err:         &testError{msg: "404 Not Found"},
+			shouldRetry: false,
+		},
+		// Retryable errors
+		{
+			name:        "timeout",
+			err:         &testError{msg: "connection timeout"},
+			shouldRetry: true,
+		},
+		{
+			name:        "context deadline exceeded",
+			err:         &testError{msg: "context deadline exceeded"},
+			shouldRetry: true,
+		},
+		{
+			name:        "connection refused",
+			err:         &testError{msg: "connection refused"},
+			shouldRetry: true,
+		},
+		{
+			name:        "connection reset",
+			err:         &testError{msg: "connection reset by peer"},
+			shouldRetry: true,
+		},
+		{
+			name:        "no such host",
+			err:         &testError{msg: "dial tcp: lookup gowa.example.com: no such host"},
+			shouldRetry: true,
+		},
+		{
+			name:        "network unreachable",
+			err:         &testError{msg: "network is unreachable"},
+			shouldRetry: true,
+		},
+		{
+			name:        "i/o timeout",
+			err:         &testError{msg: "read tcp: i/o timeout"},
+			shouldRetry: true,
+		},
+		{
+			name:        "EOF error",
+			err:         &testError{msg: "unexpected EOF"},
+			shouldRetry: true,
+		},
+		{
+			name:        "500 Internal Server Error",
+			err:         &testError{msg: "500 Internal Server Error"},
+			shouldRetry: true,
+		},
+		{
+			name:        "502 Bad Gateway",
+			err:         &testError{msg: "502 Bad Gateway"},
+			shouldRetry: true,
+		},
+		{
+			name:        "503 Service Unavailable",
+			err:         &testError{msg: "503 Service Unavailable"},
+			shouldRetry: true,
+		},
+		{
+			name:        "504 Gateway Timeout",
+			err:         &testError{msg: "504 Gateway Timeout"},
+			shouldRetry: true,
+		},
+		{
+			name:        "server misbehaving",
+			err:         &testError{msg: "server misbehaving"},
+			shouldRetry: true,
+		},
+		// Unknown errors - default to retry
+		{
+			name:        "unknown error",
+			err:         &testError{msg: "something unexpected happened"},
+			shouldRetry: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := ShouldRetry(tt.err)
+			if result != tt.shouldRetry {
+				t.Errorf("ShouldRetry(%v) = %v, want %v", tt.err, result, tt.shouldRetry)
+			}
+		})
+	}
+}
+
+// testError is a simple error implementation for testing
+type testError struct {
+	msg string
+}
+
+func (e *testError) Error() string {
+	return e.msg
+}
+
+func TestContainsString(t *testing.T) {
+	tests := []struct {
+		s        string
+		pattern  string
+		expected bool
+	}{
+		{"hello world", "world", true},
+		{"hello world", "hello", true},
+		{"hello world", "lo wo", true},
+		{"hello world", "xyz", false},
+		{"", "test", false},
+		{"test", "", true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.s+"_"+tt.pattern, func(t *testing.T) {
+			result := containsString(tt.s, tt.pattern)
+			if result != tt.expected {
+				t.Errorf("containsString(%q, %q) = %v, want %v", tt.s, tt.pattern, result, tt.expected)
+			}
+		})
+	}
+}

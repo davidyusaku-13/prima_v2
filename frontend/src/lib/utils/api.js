@@ -112,6 +112,20 @@ export async function sendReminder(token, patientId, reminderId) {
   return data;
 }
 
+export async function retryReminder(token, reminderId) {
+  const res = await fetch(`${API_URL}/reminders/${reminderId}/retry`, {
+    method: 'POST',
+    headers: getHeaders(token)
+  });
+  const data = await res.json();
+  if (!res.ok) {
+    const error = new Error(data.error || 'Failed to retry reminder');
+    error.code = data.code;
+    throw error;
+  }
+  return data.data;
+}
+
 // Users (superadmin)
 export async function fetchUsers(token) {
   const res = await fetch(`${API_URL}/users`, {
@@ -244,6 +258,51 @@ export async function fetchCategories(token = null) {
   return data.categories || [];
 }
 
+// CMS - All Content (articles + videos combined, for content picker)
+export async function fetchAllContent(token = null, type = 'all', category = null) {
+  const params = new URLSearchParams();
+  if (type && type !== 'all') params.append('type', type);
+  if (category) params.append('category', category);
+  const queryString = params.toString();
+  const url = queryString ? `${API_URL}/content?${queryString}` : `${API_URL}/content`;
+  const res = await fetch(url, { headers: getHeaders(token) });
+  if (!res.ok) throw new Error('Failed to fetch content');
+  const data = await res.json();
+  return { articles: data.articles || [], videos: data.videos || [] };
+}
+
+// CMS - Popular Content (for content suggestions)
+export async function fetchPopularContent(limit = 5, token = null) {
+  try {
+    const res = await fetch(`${API_URL}/content/popular?limit=${limit}`, {
+      headers: getHeaders(token)
+    });
+    if (!res.ok) {
+      // Return empty array on error for graceful degradation
+      return [];
+    }
+    const data = await res.json();
+    return data.content || [];
+  } catch (e) {
+    // Return empty array on network error for graceful degradation
+    console.warn('Failed to fetch popular content:', e.message);
+    return [];
+  }
+}
+
+// CMS - Increment Attachment Count
+export async function incrementAttachmentCount(contentType, contentId, token = null) {
+  const res = await fetch(`${API_URL}/content/${contentType}/${contentId}/increment-attachment`, {
+    method: 'POST',
+    headers: getHeaders(token)
+  });
+  if (!res.ok) {
+    const data = await res.json();
+    throw new Error(data.error || 'Failed to increment attachment count');
+  }
+  return res.json();
+}
+
 // CMS - Dashboard Stats
 export async function fetchDashboardStats(token) {
   const res = await fetch(`${API_URL}/dashboard/stats`, {
@@ -271,4 +330,72 @@ export async function uploadImage(token, file) {
   if (!res.ok) throw new Error('Failed to upload image');
   const data = await res.json();
   return data.images;
+}
+
+// Config - Disclaimer
+export async function fetchDisclaimer({ signal } = {}) {
+  const res = await fetch(`${API_URL}/config/disclaimer`, signal ? { signal } : {});
+  if (!res.ok) throw new Error('Failed to fetch disclaimer config');
+  const data = await res.json();
+  return data.data;
+}
+
+// Config - Quiet Hours
+export async function fetchQuietHoursConfig() {
+  const res = await fetch(`${API_URL}/config/quiet-hours`);
+  if (!res.ok) throw new Error('Failed to fetch quiet hours config');
+  const data = await res.json();
+  return data.data;
+}
+
+/**
+ * Check if current time is within quiet hours
+ * @param {Object} config - Quiet hours config {start_hour, end_hour, timezone}
+ * @returns {boolean} True if currently in quiet hours
+ */
+export function isQuietHours(config) {
+  if (!config) return false;
+
+  // Get current hour in the configured timezone
+  // WIB = UTC+7, WITA = UTC+8, WIT = UTC+9
+  const tzOffsets = { 'WIB': 7, 'WITA': 8, 'WIT': 9 };
+  const offset = tzOffsets[config.timezone] || 7;
+
+  const now = new Date();
+  const utcHour = now.getUTCHours();
+  const localHour = (utcHour + offset) % 24;
+
+  // Quiet hours span midnight (e.g., 21:00 - 06:00)
+  return localHour >= config.start_hour || localHour < config.end_hour;
+}
+
+/**
+ * Get the next active time (when quiet hours end)
+ * @param {Object} config - Quiet hours config {start_hour, end_hour, timezone}
+ * @returns {string} ISO 8601 string of next active time
+ */
+export function getNextActiveTime(config) {
+  if (!config) return null;
+
+  const tzOffsets = { 'WIB': 7, 'WITA': 8, 'WIT': 9 };
+  const offset = tzOffsets[config.timezone] || 7;
+
+  const now = new Date();
+  const utcHour = now.getUTCHours();
+  const localHour = (utcHour + offset) % 24;
+
+  // Calculate next active time (end_hour in local timezone)
+  let nextActive = new Date(now);
+  nextActive.setUTCMinutes(0, 0, 0);
+
+  // Set to end_hour in local timezone (convert to UTC)
+  const targetUTCHour = (config.end_hour - offset + 24) % 24;
+  nextActive.setUTCHours(targetUTCHour);
+
+  // If we're past end_hour today, move to tomorrow
+  if (localHour >= config.end_hour) {
+    nextActive.setUTCDate(nextActive.getUTCDate() + 1);
+  }
+
+  return nextActive.toISOString();
 }

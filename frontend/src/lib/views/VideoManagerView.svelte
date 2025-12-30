@@ -117,11 +117,13 @@
   <div
     class="min-h-screen flex items-start justify-center p-4 pt-10"
     onclick={(e) => e.stopPropagation()}
+    onkeydown={(e) => e.key === 'Escape' && onClose()}
     role="presentation"
   >
     <div
       class="w-full max-w-lg bg-white rounded-2xl shadow-2xl"
       onclick={(e) => e.stopPropagation()}
+      onkeydown={(e) => e.stopPropagation()}
       role="dialog"
       aria-modal="true"
       tabindex="-1"

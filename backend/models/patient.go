@@ -5,10 +5,20 @@ import (
 )
 
 // DeliveryStatus constants for reminder delivery tracking
+// State machine transitions:
+//   pending → scheduled (quiet hours) → sending → sent → delivered → read
+//   pending → queued → sending → sent → delivered → read
+//   sending → failed
+//   scheduled → sending (at scheduled time)
+//   sending → retrying → sending (on transient failure)
+//   retrying → sent (on success)
+//   retrying → failed (after max retries exhausted)
 const (
 	DeliveryStatusPending   = "pending"
-	DeliveryStatusQueued    = "queued"
+	DeliveryStatusScheduled = "scheduled" // Queued for quiet hours delivery
+	DeliveryStatusQueued    = "queued"    // Queued due to circuit breaker open
 	DeliveryStatusSending   = "sending"
+	DeliveryStatusRetrying  = "retrying"  // Waiting for retry after transient failure
 	DeliveryStatusSent      = "sent"
 	DeliveryStatusDelivered = "delivered"
 	DeliveryStatusRead      = "read"
@@ -26,8 +36,10 @@ type Recurrence struct {
 
 // Attachment represents content attached to a reminder
 type Attachment struct {
-	Type string `json:"type"` // "article" or "video"
-	ID   string `json:"id"`
+	Type  string `json:"type"`  // "article" or "video"
+	ID    string `json:"id"`
+	Title string `json:"title"` // Cached title for display in WhatsApp message
+	URL   string `json:"url"`   // URL to the content (article slug or video watch page)
 }
 
 // Reminder represents a patient reminder with delivery tracking
@@ -48,10 +60,11 @@ type Reminder struct {
 	GOWAMessageID        string `json:"gowa_message_id,omitempty"`
 	DeliveryStatus       string `json:"delivery_status,omitempty"`
 	DeliveryErrorMessage string `json:"delivery_error_message,omitempty"`
-	MessageSentAt        string `json:"message_sent_at,omitempty"` // ISO 8601 UTC
-	DeliveredAt          string `json:"delivered_at,omitempty"`    // ISO 8601 UTC
-	ReadAt               string `json:"read_at,omitempty"`         // ISO 8601 UTC
-	RetryCount           int    `json:"retry_count,omitempty"`     // Number of retry attempts
+	MessageSentAt        string `json:"message_sent_at,omitempty"`        // ISO 8601 UTC
+	DeliveredAt          string `json:"delivered_at,omitempty"`           // ISO 8601 UTC
+	ReadAt               string `json:"read_at,omitempty"`                // ISO 8601 UTC
+	RetryCount           int    `json:"retry_count,omitempty"`            // Number of retry attempts
+	ScheduledDeliveryAt  string `json:"scheduled_delivery_at,omitempty"` // ISO 8601 UTC - for quiet hours scheduling
 }
 
 // Patient represents a patient record

@@ -1,8 +1,26 @@
 {
-  "20251227173234-iayieeuu": {
-    "id": "20251227173234-iayieeuu",
+  "20251230141252-a2aiaeea": {
+    "id": "20251230141252-a2aiaeea",
     "name": "David Yusaku",
-    "phone": "081333852187",
+    "phone": "6281333852187",
+    "reminders": [
+      {
+        "id": "20251230153510-yaueq2ae",
+        "title": "Uji SSE #4",
+        "description": "",
+        "dueDate": "2025-12-30T15:36",
+        "priority": "medium",
+        "completed": false,
+        "recurrence": {
+          "frequency": "none",
+          "interval": 1,
+          "daysOfWeek": []
+        },
+        "notified": false,
+        "delivery_status": "sent",
+        "message_sent_at": "2025-12-30T08:36:59Z"
+      }
+    ],
     "createdBy": "superadmin"
   }
 }

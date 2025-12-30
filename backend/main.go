@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/json"
@@ -9,8 +10,10 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
+	"os/signal"
 	"strings"
 	"sync"
+	"syscall"
 	"time"
 
 	"github.com/gin-contrib/cors"
@@ -202,6 +205,9 @@ var (
 	gowaClient      *services.GOWAClient
 	reminderHandler *handlers.ReminderHandler
 	patientStore    *models.PatientStore
+	scheduler       *services.ReminderScheduler
+	webhookHandler  *handlers.WebhookHandler
+	sseHandler      *handlers.SSEHandler
 )
 
 func main() {
@@ -215,12 +221,10 @@ func main() {
 
 	// Load configuration from YAML
 	appConfig = config.LoadOrDefault("config.yaml")
-	log.Printf("Configuration loaded: server port=%d, GOWA endpoint=%s", appConfig.Server.Port, appConfig.GOWA.Endpoint)
 
 	// Initialize structured logger
 	utils.InitDefaultLogger(appConfig.Logging.Level, appConfig.Logging.Format)
 	appLogger = utils.DefaultLogger
-	appLogger.Info("Logger initialized", "level", appConfig.Logging.Level, "format", appConfig.Logging.Format)
 
 	// Load existing data
 	loadData()
@@ -232,29 +236,59 @@ func main() {
 
 	// Initialize GOWA client with circuit breaker
 	gowaClient = services.NewGOWAClientFromConfig(appConfig, appLogger)
-	appLogger.Info("GOWA client initialized",
-		"endpoint", appConfig.GOWA.Endpoint,
-		"circuit_breaker_threshold", appConfig.CircuitBreaker.FailureThreshold,
-	)
 
-	// Initialize reminder handler with new architecture
+	// Initialize and load content store (before reminder handler)
+	contentStore = handlers.NewContentStore()
+	contentStore.LoadContentData()
+
+	// Set user store for author name resolution
+	userMap := make(map[string]*handlers.UserInfo)
+	for id, user := range userStore.users {
+		userMap[id] = &handlers.UserInfo{
+			ID:        user.ID,
+			Username:  user.Username,
+			FullName:  user.FullName,
+			Role:      string(user.Role),
+			CreatedAt: user.CreatedAt,
+		}
+	}
+	contentStore.SetUserStore(userMap)
+
+	// Initialize reminder handler with new architecture (after contentStore)
 	reminderHandler = handlers.NewReminderHandler(
 		patientStore,
 		appConfig,
 		gowaClient,
 		appLogger,
 		generateID,
+		contentStore, // Pass contentStore for attachment validation
 	)
-
-	// Initialize and load content store
-	contentStore = handlers.NewContentStore()
-	contentStore.LoadContentData()
 
 	// Create default superadmin if not exists
 	createDefaultSuperadmin()
 
-	// Start reminder checker goroutine
-	go checkReminders()
+	// Initialize and start reminder scheduler for quiet hours
+	scheduler = services.NewReminderScheduler(patientStore, gowaClient, appConfig, appLogger)
+	scheduler.Start()
+
+	// Initialize webhook handler for GOWA delivery status updates
+	webhookHandler = handlers.NewWebhookHandler(patientStore, appConfig, appLogger)
+
+	// Initialize SSE handler for real-time delivery status updates
+	sseHandler = handlers.NewSSEHandler(appConfig, appLogger)
+
+	// Connect SSE handler to webhook handler for broadcasting
+	webhookHandler.SetSSEHandler(sseHandler)
+
+	// Connect SSE handler to reminder handler for manual send broadcasts
+	reminderHandler.SetSSEHandler(sseHandler)
+
+	// Connect SSE handler to scheduler for auto-send broadcasts
+	scheduler.SetSSEHandler(sseHandler)
+
+	// Start reminder checker goroutine (DISABLED - replaced by ReminderScheduler auto-send)
+	// The ReminderScheduler now handles all reminder sending: scheduled, retry, and auto-send
+	// go checkReminders()
 
 	router := gin.Default()
 
@@ -274,6 +308,13 @@ func main() {
 		c.JSON(http.StatusOK, gin.H{"status": "ok"})
 	})
 
+	// GOWA webhook endpoint (public - no auth, uses HMAC validation)
+	router.POST("/api/webhook/gowa", webhookHandler.HandleGOWAWebhook)
+
+	// Config endpoints (public)
+	router.GET("/api/config/disclaimer", getDisclaimerConfig)
+	router.GET("/api/config/quiet-hours", getQuietHoursConfig)
+
 	// Auth routes (public)
 	router.POST("/api/auth/register", register)
 	router.POST("/api/auth/login", login)
@@ -291,7 +332,17 @@ func main() {
 
 		// Videos
 		contentPublic.GET("/videos", contentStore.ListVideos)
+
+		// Combined content listing (for content picker)
+		contentPublic.GET("/content", contentStore.ListAllContent)
+
+		// Popular content (for content suggestions)
+		contentPublic.GET("/content/popular", contentStore.GetPopularContent)
 	}
+
+	// SSE endpoint (uses query parameter auth, not header auth)
+	// Must be outside protected group because EventSource API doesn't support custom headers
+	router.GET("/api/sse/delivery-status", sseAuthMiddleware(), sseHandler.HandleDeliveryStatusSSE)
 
 	// Protected routes
 	api := router.Group("/api")
@@ -313,9 +364,12 @@ func main() {
 		api.POST("/patients/:id/reminders/:reminderId/toggle", reminderHandler.Toggle)
 		api.DELETE("/patients/:id/reminders/:reminderId", reminderHandler.Delete)
 		api.POST("/patients/:id/reminders/:reminderId/send", reminderHandler.Send)
+		api.GET("/reminders/:id/status", reminderHandler.GetReminderStatus)
+		api.POST("/reminders/:id/retry", reminderHandler.RetryReminder)
 
 		// User management routes (superadmin only)
 		api.GET("/users", requireRole(RoleSuperadmin), getUsers)
+		api.GET("/users/:id", getUserByID) // Get user by ID (for author lookup)
 		api.PUT("/users/:id/role", requireRole(RoleSuperadmin), updateUserRole)
 		api.DELETE("/users/:id", requireRole(RoleSuperadmin), deleteUser)
 
@@ -332,6 +386,9 @@ func main() {
 		api.POST("/videos", requireRole(RoleAdmin, RoleSuperadmin), contentStore.CreateVideo)
 		api.DELETE("/videos/:id", requireRole(RoleAdmin, RoleSuperadmin), contentStore.DeleteVideo)
 
+		// Content attachment count
+		api.POST("/content/:type/:id/increment-attachment", contentStore.IncrementAttachmentCount)
+
 		// Upload
 		api.POST("/upload/image", requireRole(RoleAdmin, RoleSuperadmin), contentStore.UploadImage)
 
@@ -339,7 +396,50 @@ func main() {
 		api.GET("/dashboard/stats", requireRole(RoleAdmin, RoleSuperadmin), contentStore.GetDashboardStats)
 	}
 
-	router.Run(fmt.Sprintf(":%d", appConfig.Server.Port))
+	// Create HTTP server for graceful shutdown
+	srv := &http.Server{
+		Addr:    fmt.Sprintf(":%d", appConfig.Server.Port),
+		Handler: router,
+	}
+
+	// Start server in goroutine
+	go func() {
+		log.Printf("🚀 Server started on port %d", appConfig.Server.Port)
+		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Fatalf("Failed to start server: %v", err)
+		}
+	}()
+
+	// Wait for interrupt signal for graceful shutdown
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+	<-quit
+
+	appLogger.Info("Shutting down server...")
+
+	// Stop the scheduler first
+	if scheduler != nil {
+		appLogger.Info("Stopping reminder scheduler...")
+		scheduler.Stop()
+		appLogger.Info("Reminder scheduler stopped")
+	}
+
+	// Close all SSE connections before shutting down HTTP server
+	if sseHandler != nil {
+		appLogger.Info("Closing SSE connections...")
+		sseHandler.Shutdown()
+	}
+
+	// Create context with timeout for server shutdown
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	// Shutdown HTTP server
+	if err := srv.Shutdown(ctx); err != nil {
+		appLogger.Error("Server forced to shutdown", "error", err)
+	}
+
+	appLogger.Info("Server exited gracefully")
 }
 
 // Auth middleware
@@ -368,6 +468,48 @@ func authMiddleware() gin.HandlerFunc {
 		}
 
 		c.Set("userID", claims.UserID)
+		c.Set("username", claims.Username)
+		c.Set("role", string(claims.Role))
+		c.Next()
+	}
+}
+
+// SSE auth middleware - accepts token from query parameter
+// EventSource API doesn't support custom headers, so token must be in query string
+func sseAuthMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		// Try to get token from query parameter first (for SSE)
+		token := c.Query("token")
+		if token == "" {
+			// Fallback to Authorization header
+			authHeader := c.GetHeader("Authorization")
+			if authHeader == "" {
+				c.SSEvent("error", `{"error": "authorization required"}`)
+				c.Writer.Flush()
+				c.Abort()
+				return
+			}
+
+			// Extract "Bearer <token>"
+			parts := strings.SplitN(authHeader, " ", 2)
+			if len(parts) != 2 || parts[0] != "Bearer" {
+				c.SSEvent("error", `{"error": "invalid authorization format"}`)
+				c.Writer.Flush()
+				c.Abort()
+				return
+			}
+			token = parts[1]
+		}
+
+		claims, err := verifyToken(token)
+		if err != nil {
+			c.SSEvent("error", `{"error": "invalid or expired token"}`)
+			c.Writer.Flush()
+			c.Abort()
+			return
+		}
+
+		c.Set("user_id", claims.UserID)
 		c.Set("username", claims.Username)
 		c.Set("role", string(claims.Role))
 		c.Next()
@@ -431,6 +573,17 @@ func register(c *gin.Context) {
 	userStore.mu.Unlock()
 
 	saveUsers()
+
+	// Sync new user to contentStore for author attribution
+	if contentStore != nil {
+		contentStore.AddUserToStore(&handlers.UserInfo{
+			ID:        user.ID,
+			Username:  user.Username,
+			FullName:  user.FullName,
+			Role:      string(user.Role),
+			CreatedAt: user.CreatedAt,
+		})
+	}
 
 	// Generate token for immediate login
 	token, _ := generateToken(user.ID, user.Username, user.Role)
@@ -503,6 +656,28 @@ func getCurrentUser(c *gin.Context) {
 		"username": username,
 		"fullName": user.FullName,
 		"role":     role,
+	})
+}
+
+// getUserByID returns user details by ID (for author lookup in content)
+func getUserByID(c *gin.Context) {
+	id := c.Param("id")
+
+	userStore.mu.RLock()
+	user, exists := userStore.users[id]
+	userStore.mu.RUnlock()
+
+	if !exists {
+		c.JSON(http.StatusNotFound, gin.H{"error": "user not found"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"id":        user.ID,
+		"username":  user.Username,
+		"fullName":  user.FullName,
+		"role":      user.Role,
+		"createdAt": user.CreatedAt,
 	})
 }
 
@@ -638,6 +813,11 @@ func checkReminders() {
 
 			for _, reminder := range patient.Reminders {
 				if reminder.Completed || reminder.Notified || reminder.DueDate == "" {
+					continue
+				}
+
+				// Skip if already sent via new delivery system (manual send or scheduled)
+				if reminder.DeliveryStatus != "" && reminder.DeliveryStatus != models.DeliveryStatusPending {
 					continue
 				}
 
@@ -988,4 +1168,30 @@ func randomString(n int) string {
 		time.Sleep(time.Nanosecond)
 	}
 	return string(b)
+}
+
+// getDisclaimerConfig returns the disclaimer configuration for frontend sync
+func getDisclaimerConfig(c *gin.Context) {
+	enabled := false
+	if appConfig.Disclaimer.Enabled != nil {
+		enabled = *appConfig.Disclaimer.Enabled
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"data": gin.H{
+			"text":    appConfig.Disclaimer.Text,
+			"enabled": enabled,
+		},
+	})
+}
+
+// getQuietHoursConfig returns the quiet hours configuration for frontend
+func getQuietHoursConfig(c *gin.Context) {
+	c.JSON(http.StatusOK, gin.H{
+		"data": gin.H{
+			"start_hour": appConfig.QuietHours.GetStartHour(),
+			"end_hour":   appConfig.QuietHours.GetEndHour(),
+			"timezone":   appConfig.QuietHours.Timezone,
+		},
+	})
 }

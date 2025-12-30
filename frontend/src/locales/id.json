@@ -131,11 +131,40 @@
       "gowaUnavailable": "GOWA sedang tidak tersedia. Coba lagi nanti.",
       "preview": "Pratinjau Pesan"
     },
+    "status": {
+      "pending": "Tertunda",
+      "scheduled": "Dijadwalkan",
+      "queued": "Dalam Antrian",
+      "sending": "Mengirim...",
+      "retrying": "Mengirim ulang ({count}/{max})",
+      "sent": "Terkirim",
+      "delivered": "Diterima",
+      "read": "Dibaca",
+      "failed": "Gagal",
+      "expired": "Kedaluwarsa",
+      "retry": "Coba Lagi"
+    },
+    "retry": {
+      "success": "Reminder berhasil dikirim ulang",
+      "error": "Gagal mengirim ulang reminder",
+      "circuit_breaker_open": "GOWA sedang tidak tersedia. Coba lagi dalam beberapa menit.",
+      "invalid_phone": "Nomor WhatsApp tidak valid. Silakan perbaiki nomor terlebih dahulu.",
+      "invalid_status": "Hanya reminder yang gagal yang dapat dicoba lagi",
+      "retrying": "Mengirim ulang...",
+      "queued_success": "Reminder telah diantrekan. Akan dikirim otomatis saat GOWA kembali normal.",
+      "edit_phone_title": "Perbaiki Nomor WhatsApp",
+      "edit_phone_message": "Nomor WhatsApp untuk {name} tidak valid. Silakan perbaiki nomor sebelum mengirim ulang.",
+      "phone_too_short": "Nomor terlalu pendek (minimal 10 digit)",
+      "update_and_retry": "Perbarui & Kirim Ulang"
+    },
+    "failedNotification": "Reminder ke {patientName} gagal terkirim",
+    "viewDetails": "Lihat Detail",
     "preview": {
       "label": "Preview pesan WhatsApp",
       "title": "Preview Pesan WhatsApp",
       "greeting": "Halo {name},",
-      "disclaimer": "Informasi ini untuk tujuan edukasi. Konsultasikan dengan tenaga kesehatan untuk kondisi spesifik Anda."
+      "disclaimer": "Informasi ini untuk tujuan edukasi. Konsultasikan dengan tenaga kesehatan untuk kondisi spesifik Anda.",
+      "attachmentsHeader": "Konten Edukasi:"
     }
   },
   "users": {
@@ -342,5 +371,76 @@
     "uploading": "Mengunggah...",
     "clickToUpload": "Klik atau seret untuk mengunggah",
     "fileTypes": "PNG, JPG hingga 5MB"
+  },
+  "content": {
+    "picker": {
+      "title": "Pilih Konten Edukasi",
+      "search": "Cari artikel atau video...",
+      "tab": {
+        "all": "Semua",
+        "articles": "Artikel",
+        "videos": "Video"
+      },
+      "articles": "Artikel",
+      "videos": "Video",
+      "attach": "Lampirkan",
+      "noResults": "Tidak ada hasil untuk \"{query}\"",
+      "empty": "Belum ada konten edukasi",
+      "noResultsGuidance": "Coba kata kunci lain atau browse kategori",
+      "popularContent": "Konten Populer",
+      "recentAttachments": "Lampiran Terbaru",
+      "selected": "{n} dipilih",
+      "clearAll": "Hapus semua",
+      "recentLabel": "Baru saja",
+      "popularLabel": "Populer"
+    },
+    "attachment": {
+      "count": {
+        "zero": "",
+        "one": "1 artikel",
+        "other": "{n} konten"
+      },
+      "unavailable": "Konten tidak tersedia"
+    },
+    "preview": {
+      "title": "Pratinjau Konten",
+      "attach": "Lampirkan",
+      "selected": "Dipilih",
+      "close": "Tutup pratinjau"
+    },
+    "attribution": {
+      "author": "Penulis",
+      "channel": "Channel",
+      "publishedOn": "Dipublikasikan pada",
+      "uploadedOn": "Diunggah pada"
+    },
+    "disclaimer": {
+      "text": "Konten ini untuk tujuan edukasi kesehatan. Konsultasikan dengan tenaga kesehatan untuk kondisi spesifik Anda."
+    }
+  },
+  "delivery": {
+    "failedRemindersCount": "{count} reminder gagal",
+    "failedReminders": "Reminder Gagal",
+    "noFailedReminders": "Tidak ada reminder gagal",
+    "failureReasons": {
+      "invalidPhone": "Nomor tidak valid",
+      "gowaTimeout": "GOWA timeout",
+      "gowaUnavailable": "GOWA tidak tersedia",
+      "networkError": "Kesalahan jaringan",
+      "unknown": "Kesalahan tidak diketahui"
+    },
+    "filter": {
+      "label": "Filter berdasarkan status pengiriman",
+      "all": "Semua",
+      "pending": "Pending",
+      "sent": "Terkirim",
+      "failed": "Gagal",
+      "empty": {
+        "all": "Tidak ada reminder",
+        "pending": "Tidak ada reminder yang menunggu pengiriman",
+        "sent": "Tidak ada reminder yang terkirim",
+        "failed": "Tidak ada reminder yang gagal. Semua reminder terkirim dengan baik!"
+      }
+    }
   }
 }
