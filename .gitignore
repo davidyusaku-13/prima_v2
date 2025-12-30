@@ -2,6 +2,7 @@
 .claude/
 .github/
 .worktrees/
+.opencode/
 frontend/.env
 backend/.env
 backend/config.yaml
