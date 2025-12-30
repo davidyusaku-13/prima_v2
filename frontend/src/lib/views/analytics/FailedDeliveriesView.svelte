@@ -123,10 +123,11 @@
     <div class="flex flex-wrap items-center gap-4 mt-4">
       <!-- Filter by reason -->
       <div class="flex items-center gap-2">
-        <label class="text-sm text-gray-600">
+        <label for="reason-filter" class="text-sm text-gray-600">
           {$t('analytics.failed_deliveries.filter_by_reason', { default: 'Filter berdasarkan alasan' })}:
         </label>
         <select
+          id="reason-filter"
           class="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
           bind:value={selectedFilter}
         >

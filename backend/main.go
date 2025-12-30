@@ -404,6 +404,11 @@ func main() {
 
 		// Analytics - Delivery statistics
 		api.GET("/analytics/delivery", requireRole(RoleAdmin, RoleSuperadmin), analyticsHandler.GetDeliveryAnalytics)
+
+		// Analytics - Failed deliveries
+		api.GET("/analytics/failed-deliveries", requireRole(RoleAdmin, RoleSuperadmin), analyticsHandler.GetFailedDeliveries)
+		api.GET("/analytics/failed-deliveries/export", requireRole(RoleAdmin, RoleSuperadmin), analyticsHandler.ExportFailedDeliveries)
+		api.GET("/analytics/failed-deliveries/:id", requireRole(RoleAdmin, RoleSuperadmin), analyticsHandler.GetFailedDeliveryDetail)
 	}
 
 	// Create HTTP server for graceful shutdown

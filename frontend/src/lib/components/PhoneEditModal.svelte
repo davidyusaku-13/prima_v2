@@ -9,12 +9,14 @@
     onConfirm = () => {}
   } = $props();
 
-  let editedPhone = $state(currentPhone);
+  let editedPhone = $state('');
   let isValid = $derived(editedPhone.length >= 10);
 
-  // Update editedPhone when currentPhone changes
+  // Sync editedPhone with currentPhone when modal opens
   $effect(() => {
-    editedPhone = currentPhone;
+    if (show && currentPhone) {
+      editedPhone = currentPhone;
+    }
   });
 
   function handleConfirm() {
@@ -37,6 +39,7 @@
     <div
       class="absolute inset-0 bg-slate-900/50 backdrop-blur-sm"
       onclick={onClose}
+      onkeydown={(e) => { if (e.key === 'Escape') onClose(); }}
       role="button"
       tabindex="0"
       aria-label={$t('common.close')}
@@ -44,9 +47,11 @@
     <div
       class="relative bg-white rounded-xl sm:rounded-2xl shadow-xl w-full max-w-md p-4 sm:p-6"
       onclick={(e) => e.stopPropagation()}
+      onkeydown={(e) => { if (e.key === 'Escape') onClose(); }}
       role="dialog"
       aria-modal="true"
       aria-labelledby="phone-edit-title"
+      tabindex="-1"
     >
       <div class="mb-4">
         <h3 id="phone-edit-title" class="text-lg font-semibold text-slate-900 mb-2">
@@ -67,7 +72,6 @@
             onkeydown={handleKeydown}
             placeholder="+62812..."
             class="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
-            autofocus
           />
           {#if !isValid && editedPhone.length > 0}
             <p class="text-xs text-red-600">

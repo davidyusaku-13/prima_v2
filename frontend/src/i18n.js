@@ -9,17 +9,23 @@ import id from "./locales/id.json";
 register("en", () => Promise.resolve(en));
 register("id", () => Promise.resolve(id));
 
-// Safe localStorage access - check if we're in browser context
+// Get initial locale synchronously
 const getInitialLocale = () => {
   if (typeof window !== 'undefined' && window.localStorage) {
-    return localStorage.getItem("locale") || getLocaleFromNavigator() || DEFAULT_LOCALE;
+    const savedLocale = localStorage.getItem("locale");
+    if (savedLocale) return savedLocale;
   }
-  return DEFAULT_LOCALE;
+  return getLocaleFromNavigator() || DEFAULT_LOCALE;
 };
 
+// Set locale synchronously BEFORE init
+const initialLocale = getInitialLocale();
+locale.set(initialLocale);
+
+// Initialize i18n with the pre-set locale
 init({
   fallbackLocale: DEFAULT_LOCALE,
-  initialLocale: getInitialLocale(),
+  initialLocale: initialLocale,
 });
 
 export { locale };
