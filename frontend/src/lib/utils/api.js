@@ -374,6 +374,60 @@ export async function getDeliveryAnalytics(token, period = 'all') {
   return data.data;
 }
 
+// Analytics - Failed Deliveries List
+export async function getFailedDeliveries(token, { page = 1, limit = 20, reason = '' } = {}) {
+  const params = new URLSearchParams();
+  params.append('page', page);
+  params.append('limit', limit);
+  if (reason) params.append('reason', reason);
+
+  const res = await fetch(`${API_URL}/analytics/failed-deliveries?${params}`, {
+    headers: getHeaders(token)
+  });
+  if (!res.ok) {
+    const data = await res.json();
+    throw new Error(data.error || 'Failed to fetch failed deliveries');
+  }
+  const data = await res.json();
+  return data.data;
+}
+
+// Analytics - Failed Delivery Detail
+export async function getFailedDeliveryDetail(token, reminderId) {
+  const res = await fetch(`${API_URL}/analytics/failed-deliveries/${reminderId}`, {
+    headers: getHeaders(token)
+  });
+  if (!res.ok) {
+    const data = await res.json();
+    throw new Error(data.error || 'Failed to fetch delivery details');
+  }
+  const data = await res.json();
+  return data.data;
+}
+
+// Analytics - Export Failed Deliveries CSV
+export async function exportFailedDeliveries(token, { reason = '' } = {}) {
+  const params = new URLSearchParams();
+  if (reason) params.append('reason', reason);
+
+  const queryString = params.toString();
+  const url = queryString
+    ? `${API_URL}/analytics/failed-deliveries/export?${queryString}`
+    : `${API_URL}/analytics/failed-deliveries/export`;
+
+  const res = await fetch(url, {
+    headers: getHeaders(token)
+  });
+  if (!res.ok) {
+    const data = await res.json();
+    throw new Error(data.error || 'Failed to export failed deliveries');
+  }
+
+  // Return blob for download
+  const blob = await res.blob();
+  return blob;
+}
+
 /**
  * Check if current time is within quiet hours
  * @param {Object} config - Quiet hours config {start_hour, end_hour, timezone}

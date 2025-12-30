@@ -1,14 +1,18 @@
 package handlers
 
 import (
+	"encoding/csv"
 	"fmt"
 	"net/http"
 	"slices"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
 
 	"github.com/davidyusaku-13/prima_v2/models"
+	"github.com/davidyusaku-13/prima_v2/utils"
 )
 
 // DeliveryAnalyticsStats represents the delivery statistics response
@@ -240,4 +244,326 @@ func formatDuration(d time.Duration) string {
 		return fmt.Sprintf("%dm %ds", minutes, seconds)
 	}
 	return fmt.Sprintf("%ds", seconds)
+}
+
+// FailedDeliveryItem represents a single failed delivery in the list
+type FailedDeliveryItem struct {
+	ReminderID           string `json:"reminder_id"`
+	PatientNameMasked    string `json:"patient_name_masked"`
+	PhoneMasked          string `json:"phone_masked,omitempty"`
+	VolunteerName        string `json:"volunteer_name"`
+	ReminderTitle        string `json:"reminder_title"`
+	FailureReason        string `json:"failure_reason"`
+	FailureReasonCode    string `json:"failure_reason_code"`
+	FailureTimestamp     string `json:"failure_timestamp"`
+	RetryCount           int    `json:"retry_count"`
+	DeliveryErrorMessage string `json:"delivery_error_message,omitempty"`
+}
+
+// FailedDeliveryPagination represents pagination data
+type FailedDeliveryPagination struct {
+	Page       int `json:"page"`
+	Limit      int `json:"limit"`
+	Total      int `json:"total"`
+	TotalPages int `json:"total_pages"`
+}
+
+// FailedDeliveryFilterCounts represents filter counts by reason
+type FailedDeliveryFilterCounts struct {
+	InvalidPhone    int `json:"invalid_phone"`
+	GOWATimeout     int `json:"gowa_timeout"`
+	MessageRejected int `json:"message_rejected"`
+	Other           int `json:"other"`
+}
+
+// FailedDeliveriesResponse represents the failed deliveries list response
+type FailedDeliveriesResponse struct {
+	Items        []FailedDeliveryItem      `json:"items"`
+	Pagination   FailedDeliveryPagination  `json:"pagination"`
+	FilterCounts FailedDeliveryFilterCounts `json:"filter_counts"`
+}
+
+// categorizeFailureReason categorizes an error message into a reason code
+func categorizeFailureReason(errorMsg string) (reasonCode, displayText string) {
+	errorMsg = strings.ToLower(errorMsg)
+
+	if strings.Contains(errorMsg, "invalid") || strings.Contains(errorMsg, "nomor") {
+		return "invalid_phone", "Nomor tidak valid"
+	}
+	if strings.Contains(errorMsg, "timeout") || strings.Contains(errorMsg, "connection") {
+		return "gowa_timeout", "GOWA timeout"
+	}
+	if strings.Contains(errorMsg, "rejected") || strings.Contains(errorMsg, "ditolak") {
+		return "message_rejected", "Pesan ditolak"
+	}
+	return "other", "Lainnya"
+}
+
+// GetFailedDeliveries returns a list of failed deliveries for admin review
+func (h *AnalyticsHandler) GetFailedDeliveries(c *gin.Context) {
+	// Check admin role
+	role := c.GetString("role")
+	if role != "admin" && role != "superadmin" {
+		c.JSON(http.StatusForbidden, gin.H{"error": "admin access required"})
+		return
+	}
+
+	// Parse pagination parameters
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "20"))
+	if page < 1 {
+		page = 1
+	}
+	if limit < 1 {
+		limit = 20
+	}
+	if limit > 100 {
+		limit = 100
+	}
+
+	// Parse filter parameter
+	filterReason := c.Query("reason")
+
+	// Collect failed deliveries and count by category
+	var failedDeliveries []FailedDeliveryItem
+	filterCounts := FailedDeliveryFilterCounts{}
+
+	h.patientStore.RLock()
+	for _, patient := range h.patientStore.Patients {
+		for _, reminder := range patient.Reminders {
+			// Only include failed deliveries
+			if reminder.DeliveryStatus != models.DeliveryStatusFailed {
+				continue
+			}
+
+			// Categorize the failure reason
+			reasonCode, _ := categorizeFailureReason(reminder.DeliveryErrorMessage)
+
+			// Count for filter totals
+			switch reasonCode {
+			case "invalid_phone":
+				filterCounts.InvalidPhone++
+			case "gowa_timeout":
+				filterCounts.GOWATimeout++
+			case "message_rejected":
+				filterCounts.MessageRejected++
+			default:
+				filterCounts.Other++
+			}
+
+			// Apply filter if specified
+			if filterReason != "" && reasonCode != filterReason {
+				continue
+			}
+
+			failedDeliveries = append(failedDeliveries, FailedDeliveryItem{
+				ReminderID:           reminder.ID,
+				PatientNameMasked:    utils.MaskPatientName(patient.Name),
+				PhoneMasked:          utils.MaskPhoneNumber(patient.Phone),
+				VolunteerName:        patient.CreatedBy,
+				ReminderTitle:        reminder.Title,
+				FailureReason:        reminder.DeliveryErrorMessage,
+				FailureReasonCode:    reasonCode,
+				FailureTimestamp:     reminder.MessageSentAt,
+				RetryCount:           reminder.RetryCount,
+				DeliveryErrorMessage: reminder.DeliveryErrorMessage,
+			})
+		}
+	}
+	h.patientStore.RUnlock()
+
+	// Sort by failure timestamp (newest first)
+	slices.SortFunc(failedDeliveries, func(a, b FailedDeliveryItem) int {
+		if a.FailureTimestamp > b.FailureTimestamp {
+			return -1
+		}
+		if a.FailureTimestamp < b.FailureTimestamp {
+			return 1
+		}
+		return 0
+	})
+
+	// Calculate pagination
+	total := len(failedDeliveries)
+	totalPages := (total + limit - 1) / limit
+	startIdx := (page - 1) * limit
+	endIdx := startIdx + limit
+	if endIdx > total {
+		endIdx = total
+	}
+
+	// Get paginated slice
+	var paginatedItems []FailedDeliveryItem
+	if startIdx < total {
+		if endIdx > total {
+			endIdx = total
+		}
+		paginatedItems = failedDeliveries[startIdx:endIdx]
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"data": FailedDeliveriesResponse{
+			Items:        paginatedItems,
+			Pagination: FailedDeliveryPagination{
+				Page:       page,
+				Limit:      limit,
+				Total:      total,
+				TotalPages: totalPages,
+			},
+			FilterCounts: filterCounts,
+		},
+		"message": "Failed deliveries retrieved successfully",
+	})
+}
+
+// ExportFailedDeliveries exports failed deliveries as CSV
+func (h *AnalyticsHandler) ExportFailedDeliveries(c *gin.Context) {
+	// Check admin role
+	role := c.GetString("role")
+	if role != "admin" && role != "superadmin" {
+		c.JSON(http.StatusForbidden, gin.H{"error": "admin access required"})
+		return
+	}
+
+	// Parse filter parameter
+	filterReason := c.Query("reason")
+
+	// Collect failed deliveries
+	var failedDeliveries []FailedDeliveryItem
+
+	h.patientStore.RLock()
+	for _, patient := range h.patientStore.Patients {
+		for _, reminder := range patient.Reminders {
+			if reminder.DeliveryStatus != models.DeliveryStatusFailed {
+				continue
+			}
+
+			reasonCode, _ := categorizeFailureReason(reminder.DeliveryErrorMessage)
+
+			if filterReason != "" && reasonCode != filterReason {
+				continue
+			}
+
+			failedDeliveries = append(failedDeliveries, FailedDeliveryItem{
+				ReminderID:           reminder.ID,
+				PatientNameMasked:    utils.MaskPatientName(patient.Name),
+				PhoneMasked:          utils.MaskPhoneNumber(patient.Phone),
+				VolunteerName:        patient.CreatedBy,
+				ReminderTitle:        reminder.Title,
+				FailureReason:        reminder.DeliveryErrorMessage,
+				FailureReasonCode:    reasonCode,
+				FailureTimestamp:     reminder.MessageSentAt,
+				RetryCount:           reminder.RetryCount,
+				DeliveryErrorMessage: reminder.DeliveryErrorMessage,
+			})
+		}
+	}
+	h.patientStore.RUnlock()
+
+	// Sort by failure timestamp (newest first)
+	slices.SortFunc(failedDeliveries, func(a, b FailedDeliveryItem) int {
+		if a.FailureTimestamp > b.FailureTimestamp {
+			return -1
+		}
+		if a.FailureTimestamp < b.FailureTimestamp {
+			return 1
+		}
+		return 0
+	})
+
+	// Generate CSV
+	c.Header("Content-Type", "text/csv")
+	c.Header("Content-Disposition", "attachment; filename=failed-deliveries-"+time.Now().Format("2006-01-02")+".csv")
+
+	writer := csv.NewWriter(c.Writer)
+	defer writer.Flush()
+
+	// Write header
+	writer.Write([]string{
+		"Reminder ID",
+		"Patient Name (Masked)",
+		"Volunteer",
+		"Reminder Title",
+		"Failure Reason",
+		"Failure Timestamp",
+		"Retry Count",
+		"Error Message",
+	})
+
+	// Write data rows
+	for _, item := range failedDeliveries {
+		writer.Write([]string{
+			item.ReminderID,
+			item.PatientNameMasked,
+			item.VolunteerName,
+			item.ReminderTitle,
+			item.FailureReason,
+			item.FailureTimestamp,
+			strconv.Itoa(item.RetryCount),
+			item.DeliveryErrorMessage,
+		})
+	}
+}
+
+// GetFailedDeliveryDetail returns detailed information about a single failed delivery
+func (h *AnalyticsHandler) GetFailedDeliveryDetail(c *gin.Context) {
+	// Check admin role
+	role := c.GetString("role")
+	if role != "admin" && role != "superadmin" {
+		c.JSON(http.StatusForbidden, gin.H{"error": "admin access required"})
+		return
+	}
+
+	reminderID := c.Param("id")
+	if reminderID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "reminder ID is required"})
+		return
+	}
+
+	var foundReminder *models.Reminder
+	var foundPatient *models.Patient
+
+	h.patientStore.RLock()
+	for _, patient := range h.patientStore.Patients {
+		for _, reminder := range patient.Reminders {
+			if reminder.ID == reminderID {
+				if reminder.DeliveryStatus == models.DeliveryStatusFailed {
+					foundReminder = reminder
+					foundPatient = patient
+					break
+				}
+			}
+		}
+		if foundReminder != nil {
+			break
+		}
+	}
+	h.patientStore.RUnlock()
+
+	if foundReminder == nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "failed delivery not found"})
+		return
+	}
+
+	reasonCode, _ := categorizeFailureReason(foundReminder.DeliveryErrorMessage)
+
+	// Build response (note: retry_attempts is empty because model doesn't store individual retry attempts)
+	response := gin.H{
+		"data": gin.H{
+			"reminder_id":           foundReminder.ID,
+			"patient_name_masked":   utils.MaskPatientName(foundPatient.Name),
+			"phone_masked":          utils.MaskPhoneNumber(foundPatient.Phone),
+			"volunteer_name":        foundPatient.CreatedBy,
+			"reminder_title":        foundReminder.Title,
+			"delivery_error_message": foundReminder.DeliveryErrorMessage,
+			"failure_reason":        foundReminder.DeliveryErrorMessage,
+			"failure_reason_code":   reasonCode,
+			"failure_timestamp":     foundReminder.MessageSentAt,
+			"retry_count":           foundReminder.RetryCount,
+			"retry_attempts":        []interface{}{}, // Empty - model doesn't store individual attempts
+		},
+		"message": "Failed delivery details retrieved",
+	}
+
+	c.JSON(http.StatusOK, response)
 }

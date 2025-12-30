@@ -85,6 +85,18 @@
     failed: 'bg-red-100 text-red-800',
     expired: 'bg-gray-100 text-gray-600'
   };
+
+  // Navigate to failed deliveries view
+  let onNavigate = $props();
+
+  function navigateToFailedDeliveries() {
+    if (onNavigate) {
+      onNavigate('failed-deliveries');
+    } else if (typeof window !== 'undefined') {
+      // Fallback to direct navigation
+      window.location.href = '/analytics/failed-deliveries';
+    }
+  }
 </script>
 
 <div class="delivery-analytics">
@@ -144,7 +156,17 @@
         <p class="text-sm text-gray-600 mb-1">
           {$t('analytics.failedLast7Days', { default: 'Gagal (7 Hari)' })}
         </p>
-        <p class="text-2xl font-bold text-red-600">{data.failedLast7Days || 0}</p>
+        <div class="flex items-center gap-2">
+          <p class="text-2xl font-bold text-red-600">{data.failedLast7Days || 0}</p>
+          {#if data.failedLast7Days > 0}
+            <button
+              class="text-xs text-blue-600 hover:text-blue-800 font-medium"
+              onclick={navigateToFailedDeliveries}
+            >
+              {$t('analytics.failed_deliveries.view_details', { default: 'Lihat Detail' })}
+            </button>
+          {/if}
+        </div>
       </div>
 
       <!-- Avg Delivery Time -->

@@ -437,3 +437,376 @@ func BenchmarkGetDeliveryAnalytics(b *testing.B) {
 		handler.GetDeliveryAnalytics(c)
 	}
 }
+
+// Test CategorizeFailureReason tests the error categorization function
+func TestCategorizeFailureReason(t *testing.T) {
+	tests := []struct {
+		name         string
+		errorMsg     string
+		expectedCode string
+	}{
+		{"invalid phone", "invalid phone number", "invalid_phone"},
+		{"nomor invalid", "nomor tidak valid", "invalid_phone"},
+		{"timeout", "connection timeout", "gowa_timeout"},
+		{"timeout explicit", "GOWA timeout after 30s", "gowa_timeout"},
+		{"rejected", "message rejected by server", "message_rejected"},
+		{"ditolak", "pesAN ditolak", "message_rejected"},
+		{"other", "some other error", "other"},
+		{"empty", "", "other"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			reasonCode, _ := categorizeFailureReason(tt.errorMsg)
+			if reasonCode != tt.expectedCode {
+				t.Errorf("categorizeFailureReason(%q) = %s, expected %s", tt.errorMsg, reasonCode, tt.expectedCode)
+			}
+		})
+	}
+}
+
+// Test GetFailedDeliveries tests the failed deliveries handler
+func TestGetFailedDeliveries(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	now := time.Now().UTC()
+	patientStore := models.NewPatientStore(func() {})
+
+	// Create test data with failed deliveries
+	patientStore.Patients = map[string]*models.Patient{
+		"patient-1": {
+			ID:        "patient-1",
+			Name:      "John Doe",
+			Phone:     "6281234567890",
+			CreatedBy: "volunteer-1",
+			Reminders: []*models.Reminder{
+				{
+					ID:                   "reminder-1",
+					Title:                "Test Reminder 1",
+					DeliveryStatus:       models.DeliveryStatusFailed,
+					DeliveryErrorMessage: "Connection timeout",
+					MessageSentAt:        now.AddDate(0, 0, -1).Format(time.RFC3339),
+					RetryCount:           3,
+				},
+				{
+					ID:                   "reminder-2",
+					Title:                "Test Reminder 2",
+					DeliveryStatus:       models.DeliveryStatusDelivered,
+					MessageSentAt:        now.AddDate(0, 0, -1).Format(time.RFC3339),
+				},
+			},
+		},
+		"patient-2": {
+			ID:        "patient-2",
+			Name:      "Jane Smith",
+			Phone:     "6280987654321",
+			CreatedBy: "volunteer-2",
+			Reminders: []*models.Reminder{
+				{
+					ID:                   "reminder-3",
+					Title:                "Test Reminder 3",
+					DeliveryStatus:       models.DeliveryStatusFailed,
+					DeliveryErrorMessage: "Invalid phone number",
+					MessageSentAt:        now.AddDate(0, 0, -2).Format(time.RFC3339),
+					RetryCount:           1,
+				},
+				{
+					ID:                   "reminder-4",
+					Title:                "Test Reminder 4",
+					DeliveryStatus:       models.DeliveryStatusFailed,
+					DeliveryErrorMessage: "Message rejected",
+					MessageSentAt:        now.AddDate(0, 0, -3).Format(time.RFC3339),
+					RetryCount:           2,
+				},
+			},
+		},
+	}
+
+	handler := NewAnalyticsHandler(patientStore)
+
+	t.Run("admin access", func(t *testing.T) {
+		w := httptest.NewRecorder()
+		c, _ := gin.CreateTestContext(w)
+		c.Set("role", "admin")
+		c.Request = httptest.NewRequest("GET", "/analytics/failed-deliveries", nil)
+
+		handler.GetFailedDeliveries(c)
+
+		if w.Code != http.StatusOK {
+			t.Errorf("Expected status 200, got %d", w.Code)
+		}
+
+		var response map[string]interface{}
+		if err := json.Unmarshal(w.Body.Bytes(), &response); err != nil {
+			t.Errorf("Failed to parse response: %v", err)
+		}
+
+		data := response["data"].(map[string]interface{})
+		items := data["items"].([]interface{})
+		if len(items) != 3 {
+			t.Errorf("Expected 3 failed deliveries, got %d", len(items))
+		}
+
+		// Check that patient names are masked
+		firstItem := items[0].(map[string]interface{})
+		if firstItem["patient_name_masked"] == "John Doe" {
+			t.Error("Patient name should be masked")
+		}
+	})
+
+	t.Run("superadmin access", func(t *testing.T) {
+		w := httptest.NewRecorder()
+		c, _ := gin.CreateTestContext(w)
+		c.Set("role", "superadmin")
+		c.Request = httptest.NewRequest("GET", "/analytics/failed-deliveries", nil)
+
+		handler.GetFailedDeliveries(c)
+
+		if w.Code != http.StatusOK {
+			t.Errorf("Expected status 200 for superadmin, got %d", w.Code)
+		}
+	})
+
+	t.Run("volunteer denied", func(t *testing.T) {
+		w := httptest.NewRecorder()
+		c, _ := gin.CreateTestContext(w)
+		c.Set("role", "volunteer")
+		c.Request = httptest.NewRequest("GET", "/analytics/failed-deliveries", nil)
+
+		handler.GetFailedDeliveries(c)
+
+		if w.Code != http.StatusForbidden {
+			t.Errorf("Expected status 403 for volunteer, got %d", w.Code)
+		}
+	})
+
+	t.Run("filter by reason", func(t *testing.T) {
+		w := httptest.NewRecorder()
+		c, _ := gin.CreateTestContext(w)
+		c.Set("role", "admin")
+		c.Request = httptest.NewRequest("GET", "/analytics/failed-deliveries?reason=invalid_phone", nil)
+
+		handler.GetFailedDeliveries(c)
+
+		if w.Code != http.StatusOK {
+			t.Errorf("Expected status 200, got %d", w.Code)
+		}
+
+		var response map[string]interface{}
+		if err := json.Unmarshal(w.Body.Bytes(), &response); err != nil {
+			t.Errorf("Failed to parse response: %v", err)
+		}
+
+		data := response["data"].(map[string]interface{})
+		items := data["items"].([]interface{})
+		if len(items) != 1 {
+			t.Errorf("Expected 1 failed delivery for invalid_phone filter, got %d", len(items))
+		}
+	})
+
+	t.Run("pagination", func(t *testing.T) {
+		w := httptest.NewRecorder()
+		c, _ := gin.CreateTestContext(w)
+		c.Set("role", "admin")
+		c.Request = httptest.NewRequest("GET", "/analytics/failed-deliveries?page=1&limit=2", nil)
+
+		handler.GetFailedDeliveries(c)
+
+		if w.Code != http.StatusOK {
+			t.Errorf("Expected status 200, got %d", w.Code)
+		}
+
+		var response map[string]interface{}
+		if err := json.Unmarshal(w.Body.Bytes(), &response); err != nil {
+			t.Errorf("Failed to parse response: %v", err)
+		}
+
+		data := response["data"].(map[string]interface{})
+		pagination := data["pagination"].(map[string]interface{})
+		if pagination["page"].(float64) != 1 {
+			t.Error("Expected page 1")
+		}
+		if pagination["limit"].(float64) != 2 {
+			t.Error("Expected limit 2")
+		}
+		if pagination["total"].(float64) != 3 {
+			t.Errorf("Expected total 3, got %v", pagination["total"])
+		}
+		if pagination["total_pages"].(float64) != 2 {
+			t.Errorf("Expected total_pages 2, got %v", pagination["total_pages"])
+		}
+	})
+}
+
+// Test ExportFailedDeliveries tests the CSV export handler
+func TestExportFailedDeliveries(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	now := time.Now().UTC()
+	patientStore := models.NewPatientStore(func() {})
+
+	patientStore.Patients = map[string]*models.Patient{
+		"patient-1": {
+			ID:        "patient-1",
+			Name:      "John Doe",
+			Phone:     "6281234567890",
+			CreatedBy: "volunteer-1",
+			Reminders: []*models.Reminder{
+				{
+					ID:                   "reminder-1",
+					Title:                "Test Reminder 1",
+					DeliveryStatus:       models.DeliveryStatusFailed,
+					DeliveryErrorMessage: "Connection timeout",
+					MessageSentAt:        now.Format(time.RFC3339),
+					RetryCount:           3,
+				},
+			},
+		},
+	}
+
+	handler := NewAnalyticsHandler(patientStore)
+
+	t.Run("export CSV", func(t *testing.T) {
+		w := httptest.NewRecorder()
+		c, _ := gin.CreateTestContext(w)
+		c.Set("role", "admin")
+		c.Request = httptest.NewRequest("GET", "/analytics/failed-deliveries/export", nil)
+
+		handler.ExportFailedDeliveries(c)
+
+		if w.Code != http.StatusOK {
+			t.Errorf("Expected status 200, got %d", w.Code)
+		}
+
+		// Check content type
+		contentType := w.Header().Get("Content-Type")
+		if !strings.Contains(contentType, "text/csv") {
+			t.Errorf("Expected text/csv content type, got %s", contentType)
+		}
+
+		// Check content disposition
+		disposition := w.Header().Get("Content-Disposition")
+		if !strings.Contains(disposition, "failed-deliveries-") {
+			t.Error("Expected Content-Disposition with filename")
+		}
+
+		// Check CSV content
+		body := w.Body.String()
+		lines := strings.Split(body, "\n")
+		if len(lines) < 2 {
+			t.Error("Expected at least header and data row")
+		}
+
+		// Check header
+		if !strings.Contains(lines[0], "Reminder ID") {
+			t.Error("Expected header with 'Reminder ID'")
+		}
+
+		// Check data row has masked patient name
+		if strings.Contains(lines[1], "John Doe") {
+			t.Error("Patient name should be masked in CSV")
+		}
+	})
+
+	t.Run("volunteer denied", func(t *testing.T) {
+		w := httptest.NewRecorder()
+		c, _ := gin.CreateTestContext(w)
+		c.Set("role", "volunteer")
+		c.Request = httptest.NewRequest("GET", "/analytics/failed-deliveries/export", nil)
+
+		handler.ExportFailedDeliveries(c)
+
+		if w.Code != http.StatusForbidden {
+			t.Errorf("Expected status 403 for volunteer, got %d", w.Code)
+		}
+	})
+}
+
+// Test GetFailedDeliveryDetail tests the detail handler
+func TestGetFailedDeliveryDetail(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	now := time.Now().UTC()
+	patientStore := models.NewPatientStore(func() {})
+
+	patientStore.Patients = map[string]*models.Patient{
+		"patient-1": {
+			ID:        "patient-1",
+			Name:      "John Doe",
+			Phone:     "6281234567890",
+			CreatedBy: "volunteer-1",
+			Reminders: []*models.Reminder{
+				{
+					ID:                   "reminder-1",
+					Title:                "Test Reminder 1",
+					DeliveryStatus:       models.DeliveryStatusFailed,
+					DeliveryErrorMessage: "Connection timeout",
+					MessageSentAt:        now.Format(time.RFC3339),
+					RetryCount:           3,
+				},
+			},
+		},
+	}
+
+	handler := NewAnalyticsHandler(patientStore)
+
+	t.Run("get detail", func(t *testing.T) {
+		w := httptest.NewRecorder()
+		c, _ := gin.CreateTestContext(w)
+		c.Set("role", "admin")
+		c.Params = gin.Params{{Key: "id", Value: "reminder-1"}}
+		c.Request = httptest.NewRequest("GET", "/analytics/failed-deliveries/reminder-1", nil)
+
+		handler.GetFailedDeliveryDetail(c)
+
+		if w.Code != http.StatusOK {
+			t.Errorf("Expected status 200, got %d", w.Code)
+		}
+
+		var response map[string]interface{}
+		if err := json.Unmarshal(w.Body.Bytes(), &response); err != nil {
+			t.Errorf("Failed to parse response: %v", err)
+		}
+
+		data := response["data"].(map[string]interface{})
+		if data["reminder_id"] != "reminder-1" {
+			t.Error("Expected reminder_id to be reminder-1")
+		}
+
+		// Check patient name and phone are masked
+		if data["patient_name_masked"] == "John Doe" {
+			t.Error("Patient name should be masked")
+		}
+		if data["phone_masked"] == "6281234567890" {
+			t.Error("Phone should be masked")
+		}
+	})
+
+	t.Run("not found", func(t *testing.T) {
+		w := httptest.NewRecorder()
+		c, _ := gin.CreateTestContext(w)
+		c.Set("role", "admin")
+		c.Params = gin.Params{{Key: "id", Value: "non-existent"}}
+		c.Request = httptest.NewRequest("GET", "/analytics/failed-deliveries/non-existent", nil)
+
+		handler.GetFailedDeliveryDetail(c)
+
+		if w.Code != http.StatusNotFound {
+			t.Errorf("Expected status 404, got %d", w.Code)
+		}
+	})
+
+	t.Run("volunteer denied", func(t *testing.T) {
+		w := httptest.NewRecorder()
+		c, _ := gin.CreateTestContext(w)
+		c.Set("role", "volunteer")
+		c.Params = gin.Params{{Key: "id", Value: "reminder-1"}}
+		c.Request = httptest.NewRequest("GET", "/analytics/failed-deliveries/reminder-1", nil)
+
+		handler.GetFailedDeliveryDetail(c)
+
+		if w.Code != http.StatusForbidden {
+			t.Errorf("Expected status 403 for volunteer, got %d", w.Code)
+		}
+	})
+}

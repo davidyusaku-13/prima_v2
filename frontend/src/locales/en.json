@@ -477,6 +477,32 @@
       "read": "Read",
       "failed": "Failed",
       "expired": "Expired"
+    },
+    "failed_deliveries": {
+      "title": "Failed Deliveries",
+      "list_title": "Failed Deliveries List",
+      "view_details": "View Details",
+      "export_csv": "Export CSV",
+      "filter_by_reason": "Filter by reason",
+      "all_reasons": "All",
+      "invalid_phone": "Invalid phone number",
+      "gowa_timeout": "GOWA timeout",
+      "message_rejected": "Message rejected",
+      "other_reason": "Other",
+      "patient_name": "Patient Name",
+      "volunteer_name": "Volunteer Name",
+      "reminder_title": "Reminder Title",
+      "failure_reason": "Failure Reason",
+      "failure_timestamp": "Failure Time",
+      "retry_count": "Retry Count",
+      "phone_number": "Phone Number",
+      "error_message": "Error Message",
+      "retry_attempts": "Delivery Attempts",
+      "page_of": "Page {page} of {total}",
+      "no_failed_deliveries": "No failed deliveries",
+      "loading": "Loading failed deliveries...",
+      "error": "Failed to load data",
+      "exporting": "Exporting..."
     }
   }
 }

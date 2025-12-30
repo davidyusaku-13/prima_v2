@@ -482,6 +482,32 @@
       "read": "Dibaca",
       "failed": "Gagal",
       "expired": "Kedaluwarsa"
+    },
+    "failed_deliveries": {
+      "title": "Pengiriman Gagal",
+      "list_title": "Daftar Pengiriman Gagal",
+      "view_details": "Lihat Detail",
+      "export_csv": "Export CSV",
+      "filter_by_reason": "Filter berdasarkan alasan",
+      "all_reasons": "Semua",
+      "invalid_phone": "Nomor tidak valid",
+      "gowa_timeout": "GOWA timeout",
+      "message_rejected": "Pesan ditolak",
+      "other_reason": "Lainnya",
+      "patient_name": "Nama Pasien",
+      "volunteer_name": "Nama Volunteer",
+      "reminder_title": "Judul Reminder",
+      "failure_reason": "Alasan Gagal",
+      "failure_timestamp": "Waktu Gagal",
+      "retry_count": "Jumlah Percobaan",
+      "phone_number": "Nomor Telepon",
+      "error_message": "Pesan Error",
+      "retry_attempts": "Percobaan Pengiriman",
+      "page_of": "Halaman {page} dari {total}",
+      "no_failed_deliveries": "Tidak ada pengiriman gagal",
+      "loading": "Memuat data pengiriman gagal...",
+      "error": "Gagal memuat data",
+      "exporting": "Mengexport..."
     }
   }
 }
