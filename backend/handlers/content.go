@@ -1040,3 +1040,68 @@ func (cs *ContentStore) IncrementAttachmentCount(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"message": "attachment count incremented"})
 }
+
+// ContentAnalyticsItem represents a content item with attachment statistics
+type ContentAnalyticsItem struct {
+	ID              string `json:"id"`
+	Title           string `json:"title"`
+	AttachmentCount int    `json:"attachmentCount"`
+	Type            string `json:"type"` // "article" or "video"
+}
+
+// GetContentAnalytics returns content with attachment statistics for admin analytics
+func (cs *ContentStore) GetContentAnalytics(c *gin.Context) {
+	// Check admin role
+	role := c.GetString("role")
+	if role != "admin" && role != "superadmin" {
+		c.JSON(http.StatusForbidden, gin.H{"error": "admin access required"})
+		return
+	}
+
+	articles := make([]*ContentAnalyticsItem, 0)
+	videos := make([]*ContentAnalyticsItem, 0)
+	topContent := make([]*ContentAnalyticsItem, 0)
+
+	// Collect articles with counts
+	cs.Articles.Mu.RLock()
+	for _, art := range cs.Articles.Articles {
+		articles = append(articles, &ContentAnalyticsItem{
+			ID:              art.ID,
+			Title:           art.Title,
+			AttachmentCount: art.AttachmentCount,
+			Type:            "article",
+		})
+	}
+	cs.Articles.Mu.RUnlock()
+
+	// Collect videos with counts
+	cs.Videos.Mu.RLock()
+	for _, vid := range cs.Videos.Videos {
+		videos = append(videos, &ContentAnalyticsItem{
+			ID:              vid.ID,
+			Title:           vid.Title,
+			AttachmentCount: vid.AttachmentCount,
+			Type:            "video",
+		})
+	}
+	cs.Videos.Mu.RUnlock()
+
+	// Combine and sort for top content
+	allContent := append(articles, videos...)
+	sort.Slice(allContent, func(i, j int) bool {
+		return allContent[i].AttachmentCount > allContent[j].AttachmentCount
+	})
+	if len(allContent) > 10 {
+		topContent = allContent[:10]
+	} else {
+		topContent = allContent
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"data": gin.H{
+			"articles":   articles,
+			"videos":     videos,
+			"topContent": topContent,
+		},
+	})
+}

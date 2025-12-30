@@ -394,6 +394,9 @@ func main() {
 
 		// Dashboard stats
 		api.GET("/dashboard/stats", requireRole(RoleAdmin, RoleSuperadmin), contentStore.GetDashboardStats)
+
+		// Analytics - Content attachment statistics
+		api.GET("/analytics/content", requireRole(RoleAdmin, RoleSuperadmin), contentStore.GetContentAnalytics)
 	}
 
 	// Create HTTP server for graceful shutdown

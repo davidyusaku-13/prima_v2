@@ -348,6 +348,19 @@ export async function fetchQuietHoursConfig() {
   return data.data;
 }
 
+// Analytics - Content Attachment Statistics
+export async function getContentAnalytics(token) {
+  const res = await fetch(`${API_URL}/analytics/content`, {
+    headers: getHeaders(token)
+  });
+  if (!res.ok) {
+    const data = await res.json();
+    throw new Error(data.error || 'Failed to fetch content analytics');
+  }
+  const data = await res.json();
+  return data.data;
+}
+
 /**
  * Check if current time is within quiet hours
  * @param {Object} config - Quiet hours config {start_hour, end_hour, timezone}

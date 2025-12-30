@@ -437,5 +437,20 @@
         "failed": "No failed reminders. All reminders sent successfully!"
       }
     }
+  },
+  "analytics": {
+    "title": "Content Analytics",
+    "sectionTitle": "Content Attachment Statistics",
+    "topContent": "Top 10 Most Popular Content",
+    "articles": "Articles",
+    "videos": "Educational Videos",
+    "attachmentCount_zero": "Never attached",
+    "attachmentCount_one": "Attached {count} time",
+    "attachmentCount_other": "Attached {count} times",
+    "empty": "No attachment data yet",
+    "articleLabel": "Article",
+    "videoLabel": "Video",
+    "loading": "Loading analytics data...",
+    "error": "Failed to load analytics data"
   }
 }
