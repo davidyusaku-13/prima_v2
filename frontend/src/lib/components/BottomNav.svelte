@@ -1,12 +1,14 @@
 <script>
   import { t } from 'svelte-i18n';
 
-  export let user = null;
-  export let currentView = 'dashboard';
-  export let stats = { totalPatients: 0 };
-  export let users = [];
-  export let onNavigate = () => {};
-  export let onShowProfile = () => {};
+  let {
+    user = null,
+    currentView = 'dashboard',
+    stats = { totalPatients: 0 },
+    users = [],
+    onNavigate = () => {},
+    onShowProfile = () => {}
+  } = $props();
 </script>
 
 <nav class="lg:hidden fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-slate-200 px-2 py-2 pb-safe z-30">

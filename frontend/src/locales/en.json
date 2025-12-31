@@ -96,7 +96,25 @@
     "addReminder": "Add reminder",
     "editReminder": "Edit reminder",
     "deletePatientTitle": "Delete Patient",
-    "deletePatientMessage": "Are you sure you want to delete this patient?"
+    "deletePatientMessage": "Are you sure you want to delete this patient?",
+    "reminderHistory": "Reminder History",
+    "noReminderHistory": "No reminder history for this patient",
+    "createFirstReminder": "Create your first reminder to start tracking",
+    "createFirstReminderButton": "Create First Reminder",
+    "attachments": "items",
+    "attachmentsTitle": "Attachments",
+    "message": "Message",
+    "deliveryTimeline": "Delivery Timeline",
+    "sent": "Sent",
+    "delivered": "Delivered",
+    "read": "Read",
+    "noDeliveryInfo": "No delivery information yet",
+    "deliveryError": "Delivery Error",
+    "cancelled": "Cancelled",
+    "loadMore": "Load More",
+    "allHistoryLoaded": "All history has been loaded",
+    "info": "Info",
+    "history": "History"
   },
   "reminders": {
     "title": "Title",
@@ -143,6 +161,7 @@
       "read": "Read",
       "failed": "Failed",
       "expired": "Expired",
+      "cancelled": "Cancelled",
       "retry": "Retry"
     },
     "retry": {

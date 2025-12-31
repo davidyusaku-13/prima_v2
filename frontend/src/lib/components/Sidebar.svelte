@@ -1,14 +1,16 @@
 <script>
   import { t } from 'svelte-i18n';
 
-  export let user = null;
-  export let currentView = 'dashboard';
-  export let stats = { totalPatients: 0 };
-  export let users = [];
-  export let locale = 'en';
-  export let onNavigate = () => {};
-  export let onSetLocale = () => {};
-  export let onLogout = () => {};
+  let {
+    user = null,
+    currentView = 'dashboard',
+    stats = { totalPatients: 0 },
+    users = [],
+    locale = 'en',
+    onNavigate = () => {},
+    onSetLocale = () => {},
+    onLogout = () => {}
+  } = $props();
 </script>
 
 <aside class="hidden lg:flex flex-col w-64 bg-white border-r border-slate-200 fixed inset-y-0 left-0 z-30">

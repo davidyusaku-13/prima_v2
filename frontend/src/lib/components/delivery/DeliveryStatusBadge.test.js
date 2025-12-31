@@ -18,6 +18,7 @@ vi.mock('svelte-i18n', async () => {
     'reminder.status.read': 'Dibaca',
     'reminder.status.failed': 'Gagal',
     'reminder.status.expired': 'Kedaluwarsa',
+    'reminder.status.cancelled': 'Dibatalkan',
     'reminder.status.retry': 'Coba Lagi'
   };
 
@@ -150,6 +151,18 @@ describe('DeliveryStatusBadge Component', () => {
       expect(status).toBeInTheDocument();
       expect(status).toHaveAttribute('aria-label', 'Kedaluwarsa');
       expect(status).toHaveTextContent('⏰');
+    });
+
+    it('should render cancelled status with X icon in amber', async () => {
+      render(DeliveryStatusBadge, { status: 'cancelled' });
+
+      const status = screen.getByRole('status');
+      expect(status).toBeInTheDocument();
+      expect(status).toHaveAttribute('aria-label', 'Dibatalkan');
+      expect(status).toHaveTextContent('✕');  // AC: X icon
+      // Verify amber color
+      const iconSpan = status.querySelector('span[aria-hidden="true"]');
+      expect(iconSpan.className).toContain('text-amber-600');
     });
 
     it('should fallback to pending status for unknown status', async () => {

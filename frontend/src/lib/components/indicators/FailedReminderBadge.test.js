@@ -2,21 +2,33 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/svelte';
 import { deliveryStore } from '$lib/stores/delivery.svelte.js';
 import FailedReminderBadge from './FailedReminderBadge.svelte';
+import { flushSync } from 'svelte';
 
 // Mock i18n
-vi.mock('svelte-i18n', () => ({
-  _: {
-    subscribe: (fn) => {
-      fn((key, options) => {
-        if (key === 'delivery.failedRemindersCount') {
-          return `${options.values.count} failed reminders`;
-        }
-        return key;
-      });
-      return () => {};
-    }
-  }
-}));
+vi.mock('svelte-i18n', async () => {
+  const { readable } = await import('svelte/store');
+
+  return {
+    _: {
+      subscribe: (fn) => {
+        fn((key, options) => {
+          if (key === 'delivery.failedRemindersCount') {
+            return `${options?.values?.count || 0} failed reminders`;
+          }
+          return key;
+        });
+        return () => {};
+      }
+    },
+    t: (key) => key,
+    locale: readable('en'),
+    locales: readable(['en', 'id']),
+    loading: readable(false),
+    init: vi.fn(),
+    getLocaleFromNavigator: vi.fn(() => 'en'),
+    addMessages: vi.fn()
+  };
+});
 
 describe('FailedReminderBadge', () => {
   beforeEach(() => {
@@ -128,6 +140,7 @@ describe('FailedReminderBadge', () => {
       patient_name: 'Patient 1',
       error: 'Error 1'
     });
+    flushSync();
 
     const { container } = render(FailedReminderBadge);
 
@@ -141,6 +154,7 @@ describe('FailedReminderBadge', () => {
       patient_name: 'Patient 2',
       error: 'Error 2'
     });
+    flushSync();
 
     // Count should update
     countSpan = container.querySelector('span');
@@ -154,6 +168,7 @@ describe('FailedReminderBadge', () => {
       patient_name: 'Patient 1',
       error: 'Error 1'
     });
+    flushSync();
 
     const { container } = render(FailedReminderBadge);
 
@@ -162,6 +177,7 @@ describe('FailedReminderBadge', () => {
 
     // Clear failed reminders
     deliveryStore.clearFailedReminders();
+    flushSync();
 
     // Badge should be hidden
     button = container.querySelector('button');

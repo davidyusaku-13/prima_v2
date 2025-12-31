@@ -13,6 +13,7 @@ import (
 //   sending → retrying → sending (on transient failure)
 //   retrying → sent (on success)
 //   retrying → failed (after max retries exhausted)
+//   any → cancelled (user cancelled the reminder)
 const (
 	DeliveryStatusPending   = "pending"
 	DeliveryStatusScheduled = "scheduled" // Queued for quiet hours delivery
@@ -24,6 +25,7 @@ const (
 	DeliveryStatusRead      = "read"
 	DeliveryStatusFailed    = "failed"
 	DeliveryStatusExpired   = "expired"
+	DeliveryStatusCancelled = "cancelled" // Reminder was cancelled by user
 )
 
 // Recurrence represents reminder recurrence settings
@@ -65,6 +67,7 @@ type Reminder struct {
 	ReadAt               string `json:"read_at,omitempty"`                // ISO 8601 UTC
 	RetryCount           int    `json:"retry_count,omitempty"`            // Number of retry attempts
 	ScheduledDeliveryAt  string `json:"scheduled_delivery_at,omitempty"` // ISO 8601 UTC - for quiet hours scheduling
+	CancelledAt          string `json:"cancelled_at,omitempty"`           // ISO 8601 UTC - when reminder was cancelled
 }
 
 // Patient represents a patient record

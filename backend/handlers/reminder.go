@@ -886,3 +886,141 @@ func (h *ReminderHandler) RetryReminder(c *gin.Context) {
 		"message": "Reminder berhasil dikirim ulang",
 	})
 }
+
+// ReminderHistoryResponse represents a reminder in the history API response
+type ReminderHistoryResponse struct {
+	ID              string              `json:"id"`
+	Title           string              `json:"title"`
+	Message         string              `json:"message"`
+	MessagePreview  string              `json:"message_preview"`
+	ScheduledAt     string              `json:"scheduled_at"`
+	DeliveryStatus  string              `json:"delivery_status"`
+	DeliveryError   string              `json:"delivery_error,omitempty"`
+	SentAt          string              `json:"sent_at,omitempty"`
+	DeliveredAt     string              `json:"delivered_at,omitempty"`
+	ReadAt          string              `json:"read_at,omitempty"`
+	CancelledAt     string              `json:"cancelled_at,omitempty"`
+	Attachments     []models.Attachment `json:"attachments"`
+	AttachmentCount int                 `json:"attachment_count"`
+}
+
+// PaginationResponse represents pagination info
+type PaginationResponse struct {
+	Page    int  `json:"page"`
+	Limit   int  `json:"limit"`
+	Total   int  `json:"total"`
+	HasMore bool `json:"has_more"`
+}
+
+// GetPatientReminders handles GET /api/patients/:id/reminders
+// Supports history=true query parameter to return all reminders including cancelled
+func (h *ReminderHandler) GetPatientReminders(c *gin.Context) {
+	patientID := c.Param("id")
+	userID := c.GetString("userID")
+	role := c.GetString("role")
+	history := c.Query("history") == "true"
+
+	// Parse pagination params
+	page := 1
+	limit := 20
+	if p := c.Query("page"); p != "" {
+		fmt.Sscanf(p, "%d", &page)
+	}
+	if l := c.Query("limit"); l != "" {
+		fmt.Sscanf(l, "%d", &limit)
+	}
+	if limit <= 0 {
+		limit = 20
+	}
+	if limit > 100 {
+		limit = 100
+	}
+	if page <= 0 {
+		page = 1
+	}
+
+	h.store.RLock()
+	patient, exists := h.store.Patients[patientID]
+	if !exists {
+		h.store.RUnlock()
+		c.JSON(http.StatusNotFound, gin.H{"error": "patient not found"})
+		return
+	}
+
+	// Check access for volunteers
+	if role == RoleVolunteer && patient.CreatedBy != userID {
+		h.store.RUnlock()
+		c.JSON(http.StatusForbidden, gin.H{"error": "insufficient permissions"})
+		return
+	}
+
+	// Build reminder list based on history flag
+	var reminders []ReminderHistoryResponse
+	allReminders := patient.Reminders
+
+	for _, r := range allReminders {
+		// In non-history mode, exclude cancelled reminders
+		if !history && r.DeliveryStatus == models.DeliveryStatusCancelled {
+			continue
+		}
+
+		// Build message preview (first 50 chars of description or empty)
+		messagePreview := ""
+		if len(r.Description) > 50 {
+			messagePreview = r.Description[:50] + "..."
+		} else {
+			messagePreview = r.Description
+		}
+
+		reminderResp := ReminderHistoryResponse{
+			ID:              r.ID,
+			Title:           r.Title,
+			Message:         r.Description,
+			MessagePreview:  messagePreview,
+			ScheduledAt:     r.ScheduledDeliveryAt,
+			DeliveryStatus:  r.DeliveryStatus,
+			DeliveryError:   r.DeliveryErrorMessage,
+			SentAt:          r.MessageSentAt,
+			DeliveredAt:     r.DeliveredAt,
+			ReadAt:          r.ReadAt,
+			CancelledAt:     r.CancelledAt,
+			Attachments:     r.Attachments,
+			AttachmentCount: len(r.Attachments),
+		}
+		reminders = append(reminders, reminderResp)
+	}
+
+	// Sort by scheduled_at descending (most recent first)
+	sort.Slice(reminders, func(i, j int) bool {
+		return reminders[i].ScheduledAt > reminders[j].ScheduledAt
+	})
+
+	total := len(reminders)
+	hasMore := (page * limit) < total
+
+	// Apply pagination
+	startIdx := (page - 1) * limit
+	if startIdx >= total {
+		reminders = []ReminderHistoryResponse{}
+		hasMore = false
+	} else {
+		endIdx := startIdx + limit
+		if endIdx > total {
+			endIdx = total
+		}
+		reminders = reminders[startIdx:endIdx]
+	}
+
+	h.store.RUnlock()
+
+	c.JSON(http.StatusOK, gin.H{
+		"data":    reminders,
+		"message": "Success",
+		"pagination": PaginationResponse{
+			Page:    page,
+			Limit:   limit,
+			Total:   total,
+			HasMore: hasMore,
+		},
+	})
+}

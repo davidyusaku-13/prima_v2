@@ -388,6 +388,7 @@ func main() {
 		api.DELETE("/patients/:id", deletePatient)
 
 		// Reminder routes - using new handler with circuit breaker
+		api.GET("/patients/:id/reminders", reminderHandler.GetPatientReminders)
 		api.POST("/patients/:id/reminders", reminderHandler.Create)
 		api.PUT("/patients/:id/reminders/:reminderId", reminderHandler.Update)
 		api.POST("/patients/:id/reminders/:reminderId/toggle", reminderHandler.Toggle)

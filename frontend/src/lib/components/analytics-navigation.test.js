@@ -1,25 +1,49 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/svelte';
+import { render, screen, fireEvent, waitFor } from '@testing-library/svelte';
 import Sidebar from './Sidebar.svelte';
 import BottomNav from './BottomNav.svelte';
 
-// Mock i18n
-vi.mock('svelte-i18n', () => ({
-  t: vi.fn((key) => {
-    const translations = {
-      'navigation.dashboard': 'Dashboard',
-      'navigation.patients': 'Patients',
-      'navigation.users': 'Users',
-      'navigation.analytics': 'Analytics',
-      'cms.dashboard': 'CMS Dashboard',
-      'common.cms': 'CMS',
-      'common.more': 'More',
-      'berita.title': 'Health News',
-      'video.title': 'Educational Videos'
-    };
-    return translations[key] || key;
-  })
-}));
+// Mock svelte-i18n properly with store and function
+vi.mock('svelte-i18n', async () => {
+  const { readable } = await import('svelte/store');
+
+  const translations = {
+    'navigation.dashboard': 'Dashboard',
+    'navigation.patients': 'Patients',
+    'navigation.users': 'Users',
+    'navigation.analytics': 'Analytics',
+    'cms.dashboard': 'CMS Dashboard',
+    'common.cms': 'CMS',
+    'common.more': 'More',
+    'berita.title': 'Health News',
+    'video.title': 'Educational Videos',
+    'users.superadmin': 'Superadmin',
+    'users.admin': 'Admin',
+    'users.volunteer': 'Volunteer',
+    'auth.logout': 'Logout',
+    'navigation.volunteerDashboard': 'Volunteer Dashboard',
+    'app.name': 'PRIMA'
+  };
+
+  const mockT = (key, options) => translations[key] || key;
+
+  // Create a store that returns the function
+  const tStore = readable(mockT);
+
+  // t must be both a function and have subscribe for $t to work
+  const t = Object.assign(mockT, { subscribe: tStore.subscribe });
+
+  return {
+    t,
+    _: mockT,
+    locale: readable('en'),
+    locales: readable(['en', 'id']),
+    loading: readable(false),
+    init: vi.fn(),
+    getLocaleFromNavigator: vi.fn(() => 'en'),
+    addMessages: vi.fn()
+  };
+});
 
 describe('Analytics Navigation', () => {
   describe('Sidebar', () => {
@@ -156,19 +180,21 @@ describe('Analytics Navigation', () => {
       const { container } = render(BottomNav, {
         props: {
           user: { role: 'superadmin', fullName: 'Admin User' },
-          currentView: 'dashboard',
+          currentView: 'analytics', // Must be analytics to show button
           stats: { totalPatients: 5 },
           users: [],
           onNavigate
         }
       });
 
-      const analyticsButton = container.querySelectorAll('button');
-      const hasAnalytics = Array.from(analyticsButton).some(
-        btn => btn.textContent?.includes('Analytics')
-      );
-
-      expect(hasAnalytics).toBe(true);
+      // Wait for rendering
+      await waitFor(() => {
+        const buttons = container.querySelectorAll('button');
+        const hasAnalytics = Array.from(buttons).some(
+          btn => btn.textContent?.includes('Analytics')
+        );
+        expect(hasAnalytics).toBe(true);
+      });
     });
 
     it('should show analytics link for admin', async () => {
@@ -176,19 +202,20 @@ describe('Analytics Navigation', () => {
       const { container } = render(BottomNav, {
         props: {
           user: { role: 'admin', fullName: 'Admin User' },
-          currentView: 'dashboard',
+          currentView: 'analytics', // Must be analytics to show button
           stats: { totalPatients: 5 },
           users: [],
           onNavigate
         }
       });
 
-      const analyticsButton = container.querySelectorAll('button');
-      const hasAnalytics = Array.from(analyticsButton).some(
-        btn => btn.textContent?.includes('Analytics')
-      );
-
-      expect(hasAnalytics).toBe(true);
+      await waitFor(() => {
+        const buttons = container.querySelectorAll('button');
+        const hasAnalytics = Array.from(buttons).some(
+          btn => btn.textContent?.includes('Analytics')
+        );
+        expect(hasAnalytics).toBe(true);
+      });
     });
 
     it('should NOT show analytics link for volunteer', async () => {
@@ -196,7 +223,7 @@ describe('Analytics Navigation', () => {
       const { container } = render(BottomNav, {
         props: {
           user: { role: 'volunteer', fullName: 'Volunteer User' },
-          currentView: 'dashboard',
+          currentView: 'analytics',
           stats: { totalPatients: 5 },
           users: [],
           onNavigate
@@ -216,11 +243,21 @@ describe('Analytics Navigation', () => {
       const { container } = render(BottomNav, {
         props: {
           user: { role: 'superadmin', fullName: 'Admin User' },
-          currentView: 'dashboard',
+          currentView: 'analytics', // Must be analytics to show button
           stats: { totalPatients: 5 },
           users: [],
           onNavigate
         }
+      });
+
+      // Wait for button to render
+      await waitFor(() => {
+        const buttons = container.querySelectorAll('button');
+        const analyticsButton = Array.from(buttons).find(
+          btn => btn.textContent?.includes('Analytics')
+        );
+        expect(analyticsButton).toBeTruthy();
+        return analyticsButton;
       });
 
       const buttons = container.querySelectorAll('button');

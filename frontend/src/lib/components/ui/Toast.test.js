@@ -1,20 +1,32 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { render, screen } from '@testing-library/svelte';
+import { render, screen, fireEvent, waitFor } from '@testing-library/svelte';
 import { toastStore } from '$lib/stores/toast.svelte.js';
 import Toast from './Toast.svelte';
+import { flushSync } from 'svelte';
 
 // Mock i18n
-vi.mock('svelte-i18n', () => ({
-  _: {
-    subscribe: (fn) => {
-      fn((key) => {
-        if (key === 'common.close') return 'Close';
-        return key;
-      });
-      return () => {};
-    }
-  }
-}));
+vi.mock('svelte-i18n', async () => {
+  const { readable } = await import('svelte/store');
+
+  return {
+    _: {
+      subscribe: (fn) => {
+        fn((key) => {
+          if (key === 'common.close') return 'Close';
+          return key;
+        });
+        return () => {};
+      }
+    },
+    t: (key) => key,
+    locale: readable('en'),
+    locales: readable(['en', 'id']),
+    loading: readable(false),
+    init: vi.fn(),
+    getLocaleFromNavigator: vi.fn(() => 'en'),
+    addMessages: vi.fn()
+  };
+});
 
 describe('Toast Component', () => {
   beforeEach(() => {
@@ -122,6 +134,7 @@ describe('Toast Component', () => {
 
   it('should remove toast when close button clicked', () => {
     toastStore.add('Test message');
+    flushSync();
 
     const { container } = render(Toast);
 
@@ -132,6 +145,7 @@ describe('Toast Component', () => {
     const buttons = container.querySelectorAll('button');
     const closeButton = buttons[buttons.length - 1];
     closeButton?.click();
+    flushSync();
 
     // Toast should be removed
     toastElements = container.querySelectorAll('[role="alert"]');
@@ -141,6 +155,7 @@ describe('Toast Component', () => {
   it('should remove toast when action button clicked', () => {
     const action = { label: 'Click me', onClick: vi.fn() };
     toastStore.add('Message with action', { action });
+    flushSync();
 
     const { container } = render(Toast);
 
@@ -151,6 +166,7 @@ describe('Toast Component', () => {
     const actionButton = Array.from(container.querySelectorAll('button'))
       .find(btn => btn.textContent === 'Click me');
     actionButton?.click();
+    flushSync();
 
     // Toast should be removed
     toastElements = container.querySelectorAll('[role="alert"]');

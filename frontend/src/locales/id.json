@@ -96,7 +96,25 @@
     "addReminder": "Tambah pengingat",
     "editReminder": "Ubah pengingat",
     "deletePatientTitle": "Hapus Pasien",
-    "deletePatientMessage": "Apakah Anda yakin ingin menghapus pasien ini?"
+    "deletePatientMessage": "Apakah Anda yakin ingin menghapus pasien ini?",
+    "reminderHistory": "Riwayat Reminder",
+    "noReminderHistory": "Belum ada riwayat reminder untuk pasien ini",
+    "createFirstReminder": "Buat reminder pertama untuk memulai pelacakan",
+    "createFirstReminderButton": "Buat Reminder Pertama",
+    "attachments": "konten",
+    "attachmentsTitle": "Lampiran",
+    "message": "Pesan",
+    "deliveryTimeline": "Timeline Pengiriman",
+    "sent": "Dikirim",
+    "delivered": "Diterima",
+    "read": "Dibaca",
+    "noDeliveryInfo": "Belum ada informasi pengiriman",
+    "deliveryError": "Kesalahan Pengiriman",
+    "cancelled": "Dibatalkan",
+    "loadMore": "Muat Lebih Banyak",
+    "allHistoryLoaded": "Semua riwayat telah dimuat",
+    "info": "Info",
+    "history": "Riwayat"
   },
   "reminders": {
     "title": "Judul",
@@ -143,6 +161,7 @@
       "read": "Dibaca",
       "failed": "Gagal",
       "expired": "Kedaluwarsa",
+      "cancelled": "Dibatalkan",
       "retry": "Coba Lagi"
     },
     "retry": {

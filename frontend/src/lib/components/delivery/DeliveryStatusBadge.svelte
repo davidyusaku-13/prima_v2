@@ -80,6 +80,12 @@
         color: 'bg-gray-100 border-gray-400',
         icon: '⏰',
         iconColor: 'text-gray-600'
+      },
+      cancelled: {
+        label: $t('reminder.status.cancelled', { default: 'Dibatalkan' }),
+        color: 'bg-amber-100 border-amber-300',
+        icon: '✕',
+        iconColor: 'text-amber-600'
       }
     };
 

@@ -1,1 +1,23 @@
-{}
+{
+  "20251231160230-9abcdefg": {
+    "id": "20251231160230-9abcdefg",
+    "title": "Artikel #1",
+    "slug": "artikel-1",
+    "excerpt": "",
+    "content": "\u003cp\u003eCoba post artikel dengan QuillJS\u003c/p\u003e",
+    "author_id": "superadmin",
+    "category_id": "latest",
+    "hero_images": {
+      "hero_16x9": "/uploads/20251231160227-klmnopqr_16x9.jpg",
+      "hero_1x1": "/uploads/20251231160227-klmnopqr_1x1.jpg",
+      "hero_4x3": "/uploads/20251231160227-klmnopqr_4x3.jpg"
+    },
+    "status": "published",
+    "version": 1,
+    "view_count": 0,
+    "attachment_count": 0,
+    "created_at": "2025-12-31T16:02:30+07:00",
+    "published_at": "2025-12-31T16:02:30+07:00",
+    "updated_at": "2025-12-31T16:02:30+07:00"
+  }
+}

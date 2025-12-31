@@ -1710,3 +1710,442 @@ func TestReminderHandler_Send_QuietHours(t *testing.T) {
 		}
 	})
 }
+
+func TestReminderHandler_GetPatientReminders(t *testing.T) {
+	t.Run("returns reminders with pagination", func(t *testing.T) {
+		handler, store := setupTestHandler(t, nil)
+
+		// Setup test data with multiple reminders
+		store.Patients["patient-1"] = &models.Patient{
+			ID:        "patient-1",
+			Name:      "Test Patient",
+			Phone:     "08123456789",
+			CreatedBy: "user-1",
+			Reminders: []*models.Reminder{
+				{
+					ID:                   "reminder-1",
+					Title:                "Reminder 1",
+					Description:          "This is the first reminder description",
+					DeliveryStatus:       models.DeliveryStatusSent,
+					ScheduledDeliveryAt:  "2025-12-30T10:00:00Z",
+					MessageSentAt:        "2025-12-30T10:00:05Z",
+					DeliveredAt:          "2025-12-30T10:01:00Z",
+					ReadAt:               "2025-12-30T10:05:00Z",
+					Attachments:          []models.Attachment{{Type: "article", ID: "art-1", Title: "Article 1"}},
+				},
+				{
+					ID:                   "reminder-2",
+					Title:                "Reminder 2",
+					Description:          "This is the second reminder description",
+					DeliveryStatus:       models.DeliveryStatusDelivered,
+					ScheduledDeliveryAt:  "2025-12-29T10:00:00Z",
+					MessageSentAt:        "2025-12-29T10:00:05Z",
+					DeliveredAt:          "2025-12-29T10:01:00Z",
+				},
+			},
+		}
+
+		c, w := setupTestContext("GET", "/api/patients/patient-1/reminders?page=1&limit=10", map[string]string{
+			"id": "patient-1",
+		})
+		c.Set("userID", "user-1")
+		c.Set("role", "volunteer")
+
+		handler.GetPatientReminders(c)
+
+		if w.Code != http.StatusOK {
+			t.Errorf("Expected status %d, got %d", http.StatusOK, w.Code)
+		}
+
+		var response map[string]interface{}
+		json.Unmarshal(w.Body.Bytes(), &response)
+
+		if response["message"] != "Success" {
+			t.Errorf("Expected message 'Success', got %v", response["message"])
+		}
+
+		// Check pagination
+		pagination := response["pagination"].(map[string]interface{})
+		if pagination["page"].(float64) != 1 {
+			t.Errorf("Expected page 1, got %v", pagination["page"])
+		}
+		if pagination["limit"].(float64) != 10 {
+			t.Errorf("Expected limit 10, got %v", pagination["limit"])
+		}
+		if pagination["total"].(float64) != 2 {
+			t.Errorf("Expected total 2, got %v", pagination["total"])
+		}
+		if pagination["has_more"].(bool) != false {
+			t.Errorf("Expected has_more false, got %v", pagination["has_more"])
+		}
+
+		// Check data
+		data := response["data"].([]interface{})
+		if len(data) != 2 {
+			t.Errorf("Expected 2 reminders, got %d", len(data))
+		}
+	})
+
+	t.Run("returns all reminders with history=true", func(t *testing.T) {
+		handler, store := setupTestHandler(t, nil)
+
+		// Setup test data with cancelled reminder
+		store.Patients["patient-1"] = &models.Patient{
+			ID:        "patient-1",
+			Name:      "Test Patient",
+			Phone:     "08123456789",
+			CreatedBy: "user-1",
+			Reminders: []*models.Reminder{
+				{
+					ID:                   "reminder-1",
+					Title:                "Active Reminder",
+					Description:          "Active description",
+					DeliveryStatus:       models.DeliveryStatusSent,
+					ScheduledDeliveryAt:  "2025-12-30T10:00:00Z",
+				},
+				{
+					ID:                   "reminder-2",
+					Title:                "Cancelled Reminder",
+					Description:          "This reminder was cancelled",
+					DeliveryStatus:       models.DeliveryStatusCancelled,
+					ScheduledDeliveryAt:  "2025-12-28T10:00:00Z",
+					CancelledAt:          "2025-12-28T09:00:00Z",
+				},
+			},
+		}
+
+		c, w := setupTestContext("GET", "/api/patients/patient-1/reminders?history=true", map[string]string{
+			"id": "patient-1",
+		})
+		c.Set("userID", "user-1")
+		c.Set("role", "volunteer")
+
+		handler.GetPatientReminders(c)
+
+		if w.Code != http.StatusOK {
+			t.Errorf("Expected status %d, got %d", http.StatusOK, w.Code)
+		}
+
+		var response map[string]interface{}
+		json.Unmarshal(w.Body.Bytes(), &response)
+
+		data := response["data"].([]interface{})
+		if len(data) != 2 {
+			t.Errorf("Expected 2 reminders with history=true, got %d", len(data))
+		}
+
+		// Verify cancelled reminder is included
+		foundCancelled := false
+		for _, item := range data {
+			reminder := item.(map[string]interface{})
+			if reminder["delivery_status"] == models.DeliveryStatusCancelled {
+				foundCancelled = true
+				if reminder["cancelled_at"] == nil {
+					t.Error("Expected cancelled_at to be set for cancelled reminder")
+				}
+				break
+			}
+		}
+		if !foundCancelled {
+			t.Error("Expected to find cancelled reminder in response")
+		}
+	})
+
+	t.Run("excludes cancelled reminders without history=true", func(t *testing.T) {
+		handler, store := setupTestHandler(t, nil)
+
+		// Setup test data with cancelled reminder
+		store.Patients["patient-1"] = &models.Patient{
+			ID:        "patient-1",
+			Name:      "Test Patient",
+			Phone:     "08123456789",
+			CreatedBy: "user-1",
+			Reminders: []*models.Reminder{
+				{
+					ID:                   "reminder-1",
+					Title:                "Active Reminder",
+					Description:          "Active description",
+					DeliveryStatus:       models.DeliveryStatusSent,
+					ScheduledDeliveryAt:  "2025-12-30T10:00:00Z",
+				},
+				{
+					ID:                   "reminder-2",
+					Title:                "Cancelled Reminder",
+					Description:          "This reminder was cancelled",
+					DeliveryStatus:       models.DeliveryStatusCancelled,
+					ScheduledDeliveryAt:  "2025-12-28T10:00:00Z",
+				},
+			},
+		}
+
+		c, w := setupTestContext("GET", "/api/patients/patient-1/reminders", map[string]string{
+			"id": "patient-1",
+		})
+		c.Set("userID", "user-1")
+		c.Set("role", "volunteer")
+
+		handler.GetPatientReminders(c)
+
+		if w.Code != http.StatusOK {
+			t.Errorf("Expected status %d, got %d", http.StatusOK, w.Code)
+		}
+
+		var response map[string]interface{}
+		json.Unmarshal(w.Body.Bytes(), &response)
+
+		data := response["data"].([]interface{})
+		if len(data) != 1 {
+			t.Errorf("Expected 1 reminder (excluding cancelled), got %d", len(data))
+		}
+
+		reminder := data[0].(map[string]interface{})
+		if reminder["title"] != "Active Reminder" {
+			t.Errorf("Expected 'Active Reminder', got %v", reminder["title"])
+		}
+	})
+
+	t.Run("patient not found", func(t *testing.T) {
+		handler, _ := setupTestHandler(t, nil)
+
+		c, w := setupTestContext("GET", "/api/patients/nonexistent/reminders", map[string]string{
+			"id": "nonexistent",
+		})
+		c.Set("userID", "user-1")
+		c.Set("role", "volunteer")
+
+		handler.GetPatientReminders(c)
+
+		if w.Code != http.StatusNotFound {
+			t.Errorf("Expected status %d, got %d", http.StatusNotFound, w.Code)
+		}
+
+		var response map[string]interface{}
+		json.Unmarshal(w.Body.Bytes(), &response)
+
+		if response["error"] != "patient not found" {
+			t.Errorf("Expected error 'patient not found', got %v", response["error"])
+		}
+	})
+
+	t.Run("forbidden for volunteer accessing other user patient", func(t *testing.T) {
+		handler, store := setupTestHandler(t, nil)
+
+		store.Patients["patient-1"] = &models.Patient{
+			ID:        "patient-1",
+			Name:      "Test Patient",
+			Phone:     "08123456789",
+			CreatedBy: "other-user",
+			Reminders: []*models.Reminder{},
+		}
+
+		c, w := setupTestContext("GET", "/api/patients/patient-1/reminders", map[string]string{
+			"id": "patient-1",
+		})
+		c.Set("userID", "user-1")
+		c.Set("role", "volunteer")
+
+		handler.GetPatientReminders(c)
+
+		if w.Code != http.StatusForbidden {
+			t.Errorf("Expected status %d, got %d", http.StatusForbidden, w.Code)
+		}
+	})
+
+	t.Run("sorts by scheduled_at descending", func(t *testing.T) {
+		handler, store := setupTestHandler(t, nil)
+
+		// Setup test data with reminders in different order
+		store.Patients["patient-1"] = &models.Patient{
+			ID:        "patient-1",
+			Name:      "Test Patient",
+			Phone:     "08123456789",
+			CreatedBy: "user-1",
+			Reminders: []*models.Reminder{
+				{
+					ID:                  "reminder-1",
+					Title:               "Oldest",
+					Description:         "Oldest description",
+					DeliveryStatus:      models.DeliveryStatusSent,
+					ScheduledDeliveryAt: "2025-12-28T10:00:00Z",
+				},
+				{
+					ID:                  "reminder-2",
+					Title:               "Most Recent",
+					Description:         "Most recent description",
+					DeliveryStatus:      models.DeliveryStatusSent,
+					ScheduledDeliveryAt: "2025-12-30T10:00:00Z",
+				},
+				{
+					ID:                  "reminder-3",
+					Title:               "Middle",
+					Description:         "Middle description",
+					DeliveryStatus:      models.DeliveryStatusSent,
+					ScheduledDeliveryAt: "2025-12-29T10:00:00Z",
+				},
+			},
+		}
+
+		c, w := setupTestContext("GET", "/api/patients/patient-1/reminders?history=true", map[string]string{
+			"id": "patient-1",
+		})
+		c.Set("userID", "user-1")
+		c.Set("role", "volunteer")
+
+		handler.GetPatientReminders(c)
+
+		if w.Code != http.StatusOK {
+			t.Errorf("Expected status %d, got %d", http.StatusOK, w.Code)
+		}
+
+		var response map[string]interface{}
+		json.Unmarshal(w.Body.Bytes(), &response)
+
+		data := response["data"].([]interface{})
+		if len(data) != 3 {
+			t.Errorf("Expected 3 reminders, got %d", len(data))
+		}
+
+		// Verify order: most recent first
+		first := data[0].(map[string]interface{})
+		second := data[1].(map[string]interface{})
+		third := data[2].(map[string]interface{})
+
+		if first["title"] != "Most Recent" {
+			t.Errorf("Expected first reminder to be 'Most Recent', got %v", first["title"])
+		}
+		if second["title"] != "Middle" {
+			t.Errorf("Expected second reminder to be 'Middle', got %v", second["title"])
+		}
+		if third["title"] != "Oldest" {
+			t.Errorf("Expected third reminder to be 'Oldest', got %v", third["title"])
+		}
+	})
+
+	t.Run("includes attachment info", func(t *testing.T) {
+		handler, store := setupTestHandler(t, nil)
+
+		store.Patients["patient-1"] = &models.Patient{
+			ID:        "patient-1",
+			Name:      "Test Patient",
+			Phone:     "08123456789",
+			CreatedBy: "user-1",
+			Reminders: []*models.Reminder{
+				{
+					ID:              "reminder-1",
+					Title:           "Reminder with attachments",
+					Description:     "Description",
+					DeliveryStatus:  models.DeliveryStatusSent,
+					ScheduledDeliveryAt: "2025-12-30T10:00:00Z",
+					Attachments: []models.Attachment{
+						{Type: "article", ID: "art-1", Title: "Article 1"},
+						{Type: "video", ID: "vid-1", Title: "Video 1"},
+					},
+				},
+			},
+		}
+
+		c, w := setupTestContext("GET", "/api/patients/patient-1/reminders", map[string]string{
+			"id": "patient-1",
+		})
+		c.Set("userID", "user-1")
+		c.Set("role", "volunteer")
+
+		handler.GetPatientReminders(c)
+
+		if w.Code != http.StatusOK {
+			t.Errorf("Expected status %d, got %d", http.StatusOK, w.Code)
+		}
+
+		var response map[string]interface{}
+		json.Unmarshal(w.Body.Bytes(), &response)
+
+		data := response["data"].([]interface{})
+		reminder := data[0].(map[string]interface{})
+
+		if reminder["attachment_count"].(float64) != 2 {
+			t.Errorf("Expected attachment_count 2, got %v", reminder["attachment_count"])
+		}
+
+		attachments := reminder["attachments"].([]interface{})
+		if len(attachments) != 2 {
+			t.Errorf("Expected 2 attachments in array, got %d", len(attachments))
+		}
+	})
+
+	t.Run("empty patient returns empty list", func(t *testing.T) {
+		handler, store := setupTestHandler(t, nil)
+
+		store.Patients["patient-1"] = &models.Patient{
+			ID:        "patient-1",
+			Name:      "Test Patient",
+			Phone:     "08123456789",
+			CreatedBy: "user-1",
+			Reminders: []*models.Reminder{},
+		}
+
+		c, w := setupTestContext("GET", "/api/patients/patient-1/reminders", map[string]string{
+			"id": "patient-1",
+		})
+		c.Set("userID", "user-1")
+		c.Set("role", "volunteer")
+
+		handler.GetPatientReminders(c)
+
+		if w.Code != http.StatusOK {
+			t.Errorf("Expected status %d, got %d", http.StatusOK, w.Code)
+		}
+
+		var response map[string]interface{}
+		json.Unmarshal(w.Body.Bytes(), &response)
+
+		data := response["data"].([]interface{})
+		if len(data) != 0 {
+			t.Errorf("Expected 0 reminders, got %d", len(data))
+		}
+
+		pagination := response["pagination"].(map[string]interface{})
+		if pagination["total"].(float64) != 0 {
+			t.Errorf("Expected total 0, got %v", pagination["total"])
+		}
+	})
+
+	t.Run("admin can access any patient reminders", func(t *testing.T) {
+		handler, store := setupTestHandler(t, nil)
+
+		store.Patients["patient-1"] = &models.Patient{
+			ID:        "patient-1",
+			Name:      "Test Patient",
+			Phone:     "08123456789",
+			CreatedBy: "other-user",
+			Reminders: []*models.Reminder{
+				{
+					ID:                  "reminder-1",
+					Title:               "Test",
+					Description:         "Description",
+					DeliveryStatus:      models.DeliveryStatusSent,
+					ScheduledDeliveryAt: "2025-12-30T10:00:00Z",
+				},
+			},
+		}
+
+		c, w := setupTestContext("GET", "/api/patients/patient-1/reminders", map[string]string{
+			"id": "patient-1",
+		})
+		c.Set("userID", "admin-user")
+		c.Set("role", "admin")
+
+		handler.GetPatientReminders(c)
+
+		if w.Code != http.StatusOK {
+			t.Errorf("Expected status %d, got %d", http.StatusOK, w.Code)
+		}
+
+		var response map[string]interface{}
+		json.Unmarshal(w.Body.Bytes(), &response)
+
+		data := response["data"].([]interface{})
+		if len(data) != 1 {
+			t.Errorf("Expected 1 reminder, got %d", len(data))
+		}
+	})
+}

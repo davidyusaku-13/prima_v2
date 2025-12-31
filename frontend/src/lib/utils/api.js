@@ -102,6 +102,21 @@ export async function deleteReminder(token, patientId, reminderId) {
   if (!res.ok) throw new Error('Failed to delete reminder');
 }
 
+// Patient Reminders (for history view)
+export async function fetchPatientReminders(token, patientId, options = {}) {
+  const { history = true, page = 1, limit = 20 } = options;
+  const params = new URLSearchParams();
+  if (history) params.set('history', 'true');
+  params.set('page', page.toString());
+  params.set('limit', limit.toString());
+
+  const res = await fetch(`${API_URL}/patients/${patientId}/reminders?${params}`, {
+    headers: getHeaders(token)
+  });
+  if (!res.ok) throw new Error('Failed to fetch patient reminders');
+  return res.json();
+}
+
 export async function sendReminder(token, patientId, reminderId) {
   const res = await fetch(`${API_URL}/patients/${patientId}/reminders/${reminderId}/send`, {
     method: 'POST',
