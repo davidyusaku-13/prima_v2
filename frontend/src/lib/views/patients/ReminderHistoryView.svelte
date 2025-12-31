@@ -103,9 +103,12 @@
     await loadReminders();
   }
 
-  // Initial load
+  let initialized = $state(false);
+
+  // Initial load - run once when token and patientId are available
   $effect(() => {
-    if (token && patientId) {
+    if (token && patientId && !initialized) {
+      initialized = true;
       loadReminders(true);
     }
   });
@@ -131,7 +134,7 @@
 
   <!-- Loading state -->
   {#if loading}
-    <div class="flex items-center justify-center py-12">
+    <div class="flex items-center justify-center py-12" role="status">
       <div class="animate-spin w-8 h-8 border-3 border-teal-600 border-t-transparent rounded-full"></div>
     </div>
   {:else if error}
