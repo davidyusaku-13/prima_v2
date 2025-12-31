@@ -61,7 +61,8 @@
     "dashboard": "Dashboard",
     "patients": "Patients",
     "users": "Users",
-    "volunteerDashboard": "Volunteer Dashboard"
+    "volunteerDashboard": "Volunteer Dashboard",
+    "analytics": "Analytics"
   },
   "dashboard": {
     "title": "Dashboard",

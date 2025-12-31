@@ -14,6 +14,7 @@
   import ArticleEditorView from '$lib/views/ArticleEditorView.svelte';
   import VideoManagerView from '$lib/views/VideoManagerView.svelte';
   import FailedDeliveriesView from '$lib/views/analytics/FailedDeliveriesView.svelte';
+  import CmsAnalyticsView from '$lib/views/cms/CmsAnalyticsView.svelte';
   import Sidebar from '$lib/components/Sidebar.svelte';
   import BottomNav from '$lib/components/BottomNav.svelte';
   import PatientModal from '$lib/components/PatientModal.svelte';
@@ -725,6 +726,8 @@
         <VideoEdukasiView onWatchVideo={watchVideo} />
       {:else if currentView === 'failed-deliveries' && (user?.role === 'admin' || user?.role === 'superadmin')}
         <FailedDeliveriesView token={token} />
+      {:else if currentView === 'analytics' && (user?.role === 'admin' || user?.role === 'superadmin')}
+        <CmsAnalyticsView token={token} />
       {/if}
     {/if}
     </div>

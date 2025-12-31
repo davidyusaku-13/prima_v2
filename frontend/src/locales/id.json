@@ -61,7 +61,8 @@
     "dashboard": "Beranda",
     "patients": "Pasien",
     "users": "Pengguna",
-    "volunteerDashboard": "Dasbor Relawan"
+    "volunteerDashboard": "Dasbor Relawan",
+    "analytics": "Analitik"
   },
   "dashboard": {
     "title": "Beranda",

@@ -1,6 +1,6 @@
 <script>
   import { t } from 'svelte-i18n';
-  import { getContentAnalytics } from '../utils/api.js';
+  import { getContentAnalytics } from '$lib/utils/api.js';
 
   /**
    * ContentAnalyticsWidget - Displays content attachment statistics for admins

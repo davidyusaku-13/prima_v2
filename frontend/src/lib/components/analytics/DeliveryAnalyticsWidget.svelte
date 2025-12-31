@@ -8,7 +8,7 @@
    */
 
   /** @type {Object} */
-  let { token = null } = $props();
+  let { token = null, onNavigate = undefined } = $props();
 
   // Period options
   const periods = [
@@ -85,9 +85,6 @@
     failed: 'bg-red-100 text-red-800',
     expired: 'bg-gray-100 text-gray-600'
   };
-
-  // Navigate to failed deliveries view
-  let onNavigate = $props();
 
   function navigateToFailedDeliveries() {
     if (onNavigate) {
