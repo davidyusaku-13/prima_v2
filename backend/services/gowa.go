@@ -268,6 +268,15 @@ func (c *GOWAClient) IsAvailable() bool {
 	return c.circuitBreaker.Allow()
 }
 
+// CircuitBreakerDetails represents detailed circuit breaker state
+type CircuitBreakerDetails struct {
+	State              string        `json:"state"`
+	FailureCount       int           `json:"failure_count"`
+	CooldownRemaining  time.Duration `json:"cooldown_remaining_seconds"`
+	Threshold          int           `json:"threshold"`
+	CooldownDuration   time.Duration `json:"cooldown_duration_seconds"`
+}
+
 // GetCircuitBreakerState returns the current state of the circuit breaker
 func (c *GOWAClient) GetCircuitBreakerState() string {
 	return c.circuitBreaker.State()
@@ -276,6 +285,45 @@ func (c *GOWAClient) GetCircuitBreakerState() string {
 // GetCircuitBreakerFailures returns the current failure count
 func (c *GOWAClient) GetCircuitBreakerFailures() int {
 	return c.circuitBreaker.Failures()
+}
+
+// SetCircuitBreakerStateForTest sets the circuit breaker state for testing purposes
+// This is only used in test files
+func (c *GOWAClient) SetCircuitBreakerStateForTest(state string, failures int, cooldown time.Duration) {
+	c.circuitBreaker.mu.Lock()
+	defer c.circuitBreaker.mu.Unlock()
+	c.circuitBreaker.state = state
+	c.circuitBreaker.failures = failures
+	c.circuitBreaker.lastFailure = time.Now().Add(-cooldown)
+}
+
+// GetEndpoint returns the GOWA endpoint URL
+func (c *GOWAClient) GetEndpoint() string {
+	return c.endpoint
+}
+
+// GetCircuitBreakerDetails returns detailed circuit breaker information
+func (c *GOWAClient) GetCircuitBreakerDetails() CircuitBreakerDetails {
+	c.circuitBreaker.mu.Lock()
+	defer c.circuitBreaker.mu.Unlock()
+
+	state := c.circuitBreaker.state
+	cooldownRemaining := time.Duration(0)
+
+	if state == "open" {
+		elapsed := time.Since(c.circuitBreaker.lastFailure)
+		if elapsed < c.circuitBreaker.cooldownDuration {
+			cooldownRemaining = c.circuitBreaker.cooldownDuration - elapsed
+		}
+	}
+
+	return CircuitBreakerDetails{
+		State:             state,
+		FailureCount:      c.circuitBreaker.failures,
+		CooldownRemaining: cooldownRemaining,
+		Threshold:         c.circuitBreaker.threshold,
+		CooldownDuration:  c.circuitBreaker.cooldownDuration,
+	}
 }
 
 // RetryConfig holds retry configuration

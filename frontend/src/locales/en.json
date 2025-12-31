@@ -504,5 +504,27 @@
       "error": "Failed to load data",
       "exporting": "Exporting..."
     }
+  },
+  "system_health": {
+    "title": "System Health",
+    "widget_title": "System Health",
+    "gowa_connected": "GOWA: Connected",
+    "gowa_disconnected": "GOWA: Unavailable",
+    "gowa_checking": "GOWA: Checking...",
+    "last_checked": "Last checked: {time}",
+    "queue_size": "Queue: {count} reminder",
+    "queue_warning": "Queue: {count} reminder ⚠️",
+    "circuit_breaker_closed": "Circuit breaker closed",
+    "circuit_breaker_open": "Circuit breaker active, reset in {minutes} minutes",
+    "circuit_breaker_half_open": "Circuit breaker testing recovery",
+    "detail_endpoint": "Endpoint",
+    "detail_last_success": "Last success",
+    "detail_circuit_state": "Circuit breaker state",
+    "detail_queue_breakdown": "Queue breakdown",
+    "detail_scheduled": "Scheduled",
+    "detail_retrying": "Retrying",
+    "detail_quiet_hours": "Quiet hours",
+    "refresh": "Refresh",
+    "failure_count": "Failure count: {count}"
   }
 }

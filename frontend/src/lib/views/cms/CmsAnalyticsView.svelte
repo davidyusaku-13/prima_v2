@@ -2,10 +2,11 @@
   import { t } from 'svelte-i18n';
   import ContentAnalyticsWidget from '../../components/analytics/ContentAnalyticsWidget.svelte';
   import DeliveryAnalyticsWidget from '../../components/analytics/DeliveryAnalyticsWidget.svelte';
+  import SystemHealthWidget from '../../components/health/SystemHealthWidget.svelte';
 
   /**
    * CmsAnalyticsView - Full analytics page for admin
-   * Shows content attachment statistics and delivery statistics
+   * Shows content attachment statistics, delivery statistics, and system health
    */
 
   /** @type {Object} */
@@ -20,6 +21,11 @@
     <p class="text-gray-600 mt-1">
       {$t('analytics.sectionTitle', { default: 'Statistik Sistem' })}
     </p>
+  </div>
+
+  <!-- System Health Widget - Top Right -->
+  <div class="max-w-md ml-auto mb-6">
+    <SystemHealthWidget {token} />
   </div>
 
   <!-- Delivery Statistics Section -->

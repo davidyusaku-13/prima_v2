@@ -209,6 +209,7 @@ var (
 	webhookHandler   *handlers.WebhookHandler
 	sseHandler       *handlers.SSEHandler
 	analyticsHandler *handlers.AnalyticsHandler
+	healthHandler    *handlers.HealthHandler
 )
 
 func main() {
@@ -290,6 +291,30 @@ func main() {
 	// Initialize analytics handler for delivery statistics
 	analyticsHandler = handlers.NewAnalyticsHandler(patientStore)
 
+	// Initialize health handler for system health monitoring
+	healthHandler = handlers.NewHealthHandler(patientStore, gowaClient)
+
+	// Start health check goroutine (runs every 60 seconds)
+	go func() {
+		ticker := time.NewTicker(60 * time.Second)
+		defer ticker.Stop()
+
+		for range ticker.C {
+			if gowaClient != nil {
+				connected := gowaClient.IsAvailable()
+				healthHandler.UpdateGOWAPing(connected)
+			}
+		}
+	}()
+
+	// Initial health check
+	go func() {
+		if gowaClient != nil {
+			connected := gowaClient.IsAvailable()
+			healthHandler.UpdateGOWAPing(connected)
+		}
+	}()
+
 	// Start reminder checker goroutine (DISABLED - replaced by ReminderScheduler auto-send)
 	// The ReminderScheduler now handles all reminder sending: scheduled, retry, and auto-send
 	// go checkReminders()
@@ -308,9 +333,9 @@ func main() {
 	router.Static("/uploads", "./uploads")
 
 	// Health check (public)
-	router.GET("/api/health", func(c *gin.Context) {
-		c.JSON(http.StatusOK, gin.H{"status": "ok"})
-	})
+	router.GET("/api/health", healthHandler.GetHealth)
+	// Health check detailed (admin only)
+	router.GET("/api/health/detailed", authMiddleware(), healthHandler.GetHealthDetailed)
 
 	// GOWA webhook endpoint (public - no auth, uses HMAC validation)
 	router.POST("/api/webhook/gowa", webhookHandler.HandleGOWAWebhook)

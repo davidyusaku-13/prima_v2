@@ -428,6 +428,34 @@ export async function exportFailedDeliveries(token, { reason = '' } = {}) {
   return blob;
 }
 
+// Health - Basic Health Check
+export async function getHealth() {
+  try {
+    const res = await fetch(`${API_URL}/health`);
+    if (!res.ok) {
+      return { status: 'error', timestamp: new Date().toISOString() };
+    }
+    const data = await res.json();
+    return data.data || data;
+  } catch (e) {
+    console.warn('Health check failed:', e.message);
+    return { status: 'error', timestamp: new Date().toISOString() };
+  }
+}
+
+// Health - Detailed Health Status (Admin Only)
+export async function getHealthDetailed(token) {
+  const res = await fetch(`${API_URL}/health/detailed`, {
+    headers: getHeaders(token)
+  });
+  if (!res.ok) {
+    const data = await res.json();
+    throw new Error(data.error || 'Failed to fetch health status');
+  }
+  const data = await res.json();
+  return data.data;
+}
+
 /**
  * Check if current time is within quiet hours
  * @param {Object} config - Quiet hours config {start_hour, end_hour, timezone}

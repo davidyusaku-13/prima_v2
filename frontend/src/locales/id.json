@@ -509,5 +509,27 @@
       "error": "Gagal memuat data",
       "exporting": "Mengexport..."
     }
+  },
+  "system_health": {
+    "title": "Kesehatan Sistem",
+    "widget_title": "Kesehatan Sistem",
+    "gowa_connected": "GOWA: Terhubung",
+    "gowa_disconnected": "GOWA: Tidak Tersedia",
+    "gowa_checking": "GOWA: Memeriksa...",
+    "last_checked": "Terakhir dicek: {time}",
+    "queue_size": "Antrian: {count} reminder",
+    "queue_warning": "Antrian: {count} reminder ⚠️",
+    "circuit_breaker_closed": "Circuit breaker tertutup",
+    "circuit_breaker_open": "Circuit breaker aktif, reset dalam {minutes} menit",
+    "circuit_breaker_half_open": "Circuit breaker dalam mode pengujian",
+    "detail_endpoint": "Endpoint",
+    "detail_last_success": "Terakhir sukses",
+    "detail_circuit_state": "Status circuit breaker",
+    "detail_queue_breakdown": "Rincian antrian",
+    "detail_scheduled": "Terjadwal",
+    "detail_retrying": "Retry",
+    "detail_quiet_hours": "Quiet hours",
+    "refresh": "Perbarui",
+    "failure_count": "Jumlah kegagalan: {count}"
   }
 }
