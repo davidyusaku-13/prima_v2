@@ -23,8 +23,8 @@
     </p>
   </div>
 
-  <!-- System Health Widget - Top Right -->
-  <div class="max-w-md ml-auto mb-6">
+  <!-- System Health Widget -->
+  <div class="mb-6">
     <SystemHealthWidget {token} />
   </div>
 
@@ -33,13 +33,11 @@
     <h2 class="text-lg font-semibold text-gray-800 mb-4">
       {$t('analytics.deliverySectionTitle', { default: 'Statistik Pengiriman' })}
     </h2>
-    <div class="max-w-4xl">
-      <DeliveryAnalyticsWidget {token} />
-    </div>
+    <DeliveryAnalyticsWidget {token} />
   </div>
 
   <!-- Content Analytics Section -->
-  <div class="max-w-2xl">
+  <div>
     <h2 class="text-lg font-semibold text-gray-800 mb-4">
       {$t('analytics.contentSectionTitle', { default: 'Statistik Lampiran Konten' })}
     </h2>
