@@ -78,6 +78,10 @@
   },
   "patients": {
     "title": "Pasien",
+    "tabs": {
+      "patients": "Pasien",
+      "reminders": "Pengingat"
+    },
     "addPatient": "Tambah Pasien",
     "editPatient": "Ubah Pasien",
     "patientName": "Nama pasien",
@@ -93,8 +97,11 @@
     "getStarted": "Mulai dengan menambahkan pasien pertama Anda.",
     "noPhone": "Tidak ada telepon",
     "reminders": "Pengingat",
+    "noReminders": "Tidak ada pengingat ditemukan",
+    "noRemindersMatch": "Tidak ada pengingat yang cocok dengan filter saat ini",
     "addReminder": "Tambah pengingat",
     "editReminder": "Ubah pengingat",
+    "filters": "Filter",
     "deletePatientTitle": "Hapus Pasien",
     "deletePatientMessage": "Apakah Anda yakin ingin menghapus pasien ini?",
     "reminderHistory": "Riwayat Reminder",
@@ -112,6 +119,8 @@
     "deliveryError": "Kesalahan Pengiriman",
     "cancelled": "Dibatalkan",
     "loadMore": "Muat Lebih Banyak",
+    "filterByStatus": "Filter berdasarkan Status",
+    "filterByPriority": "Filter berdasarkan Prioritas",
     "allHistoryLoaded": "Semua riwayat telah dimuat",
     "info": "Info",
     "history": "Riwayat"
@@ -149,6 +158,10 @@
       "invalidPhone": "Nomor WhatsApp tidak valid",
       "gowaUnavailable": "GOWA sedang tidak tersedia. Coba lagi nanti.",
       "preview": "Pratinjau Pesan"
+    },
+    "delete": {
+      "title": "Hapus Reminder?",
+      "confirm": "Apakah Anda yakin ingin menghapus \"{title}\"? Tindakan ini tidak dapat dibatalkan."
     },
     "status": {
       "pending": "Tertunda",

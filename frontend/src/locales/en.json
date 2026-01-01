@@ -78,6 +78,10 @@
   },
   "patients": {
     "title": "Patients",
+    "tabs": {
+      "patients": "Patients",
+      "reminders": "Reminders"
+    },
     "addPatient": "Add Patient",
     "editPatient": "Edit Patient",
     "patientName": "Patient name",
@@ -93,8 +97,11 @@
     "getStarted": "Get started by adding your first patient.",
     "noPhone": "No phone",
     "reminders": "Reminders",
+    "noReminders": "No reminders found",
+    "noRemindersMatch": "No reminders match your current filters",
     "addReminder": "Add reminder",
     "editReminder": "Edit reminder",
+    "filters": "Filters",
     "deletePatientTitle": "Delete Patient",
     "deletePatientMessage": "Are you sure you want to delete this patient?",
     "reminderHistory": "Reminder History",
@@ -112,6 +119,8 @@
     "deliveryError": "Delivery Error",
     "cancelled": "Cancelled",
     "loadMore": "Load More",
+    "filterByStatus": "Filter by Status",
+    "filterByPriority": "Filter by Priority",
     "cancelReminder": {
       "title": "Cancel Reminder?",
       "confirm": "Are you sure you want to cancel this reminder?",
@@ -159,6 +168,10 @@
       "invalidPhone": "Invalid WhatsApp number",
       "gowaUnavailable": "GOWA is currently unavailable. Please try again later.",
       "preview": "Message Preview"
+    },
+    "delete": {
+      "title": "Delete Reminder?",
+      "confirm": "Are you sure you want to delete \"{title}\"? This action cannot be undone."
     },
     "status": {
       "pending": "Pending",
