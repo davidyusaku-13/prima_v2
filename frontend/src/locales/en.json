@@ -112,6 +112,16 @@
     "deliveryError": "Delivery Error",
     "cancelled": "Cancelled",
     "loadMore": "Load More",
+    "cancelReminder": {
+      "title": "Cancel Reminder?",
+      "confirm": "Are you sure you want to cancel this reminder?",
+      "button": "Yes, Cancel",
+      "cancelling": "Cancelling...",
+      "success": "Reminder cancelled successfully",
+      "error": "Failed to cancel reminder",
+      "cannot_cancel": "This reminder cannot be cancelled",
+      "scheduledTime": "Scheduled"
+    },
     "allHistoryLoaded": "All history has been loaded",
     "info": "Info",
     "history": "History"
@@ -176,6 +186,15 @@
       "edit_phone_message": "The WhatsApp number for {name} is invalid. Please fix the number before retrying.",
       "phone_too_short": "Number too short (minimum 10 digits)",
       "update_and_retry": "Update & Retry"
+    },
+    "cancel": {
+      "title": "Cancel Reminder?",
+      "confirm": "Are you sure you want to cancel this reminder?",
+      "button": "Cancel Reminder",
+      "cancelling": "Cancelling...",
+      "success": "Reminder cancelled successfully",
+      "error": "Failed to cancel reminder",
+      "cannot_cancel": "This reminder cannot be cancelled"
     },
     "failedNotification": "Reminder to {patientName} failed to send",
     "viewDetails": "View Details",

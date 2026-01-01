@@ -3,6 +3,7 @@
   import { locale } from 'svelte-i18n';
   import EmptyState from '$lib/components/ui/EmptyState.svelte';
   import DeliveryStatusBadge from '$lib/components/delivery/DeliveryStatusBadge.svelte';
+  import CancelConfirmationModal from '$lib/components/reminders/CancelConfirmationModal.svelte';
   import * as api from '$lib/utils/api.js';
 
   /**
@@ -30,6 +31,12 @@
   let page = $state(1);
   let hasMore = $state(true);
   let limit = 20;
+
+  // Cancel modal state
+  let showCancelModal = $state(false);
+  let reminderToCancel = $state(null);
+  let cancelling = $state(false);
+  let cancelError = $state(null);
 
   // Format date helper
   function formatDate(dateStr) {
@@ -118,6 +125,65 @@
     return type === 'article'
       ? '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z"></path></svg>'
       : '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>';
+  }
+
+  // Check if reminder can be cancelled
+  function canCancelReminder(status) {
+    return status === 'pending' || status === 'scheduled';
+  }
+
+  // Open cancel modal
+  function openCancelModal(reminder) {
+    reminderToCancel = reminder;
+    showCancelModal = true;
+    cancelError = null;
+  }
+
+  // Close cancel modal
+  function closeCancelModal() {
+    showCancelModal = false;
+    reminderToCancel = null;
+    cancelError = null;
+  }
+
+  // Handle cancel confirmation
+  async function handleCancelConfirm() {
+    if (!reminderToCancel) return;
+
+    cancelling = true;
+    cancelError = null;
+
+    try {
+      await api.cancelReminder(token, reminderToCancel.id);
+
+      // Update the reminder in the list
+      const index = reminders.findIndex(r => r.id === reminderToCancel.id);
+      if (index !== -1) {
+        reminders[index] = {
+          ...reminders[index],
+          delivery_status: 'cancelled',
+          cancelled_at: new Date().toISOString()
+        };
+      }
+
+      closeCancelModal();
+      
+      // Show success toast (AC requirement)
+      showToast($t('reminder.cancel.success') || 'Reminder dibatalkan', 'success');
+    } catch (e) {
+      cancelError = e.message || $t('reminder.cancel.error') || 'Failed to cancel reminder';
+      console.warn('Failed to cancel reminder:', e.message);
+    } finally {
+      cancelling = false;
+    }
+  }
+  
+  // Toast notification helper
+  function showToast(message, type = 'info') {
+    // Dispatch custom event for toast notification
+    window.dispatchEvent(new CustomEvent('show-toast', {
+      detail: { message, type }
+    }));
   }
 </script>
 
@@ -338,6 +404,21 @@
                     </div>
                   </div>
                 {/if}
+
+                <!-- Cancel button (only for cancellable reminders) -->
+                {#if canCancelReminder(reminder.delivery_status)}
+                  <div class="pt-2">
+                    <button
+                      onclick={() => openCancelModal(reminder)}
+                      class="flex items-center gap-2 px-4 py-2 text-amber-600 bg-amber-50 border border-amber-200 rounded-lg hover:bg-amber-100 transition-colors duration-200"
+                    >
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                      <span class="font-medium">{$t('reminder.cancel.button') || 'Batalkan Reminder'}</span>
+                    </button>
+                  </div>
+                {/if}
               </div>
             </div>
           {/if}
@@ -373,3 +454,11 @@
     {/if}
   {/if}
 </div>
+
+<!-- Cancel Confirmation Modal -->
+<CancelConfirmationModal
+  show={showCancelModal}
+  reminder={reminderToCancel}
+  onClose={closeCancelModal}
+  onConfirm={handleCancelConfirm}
+/>

@@ -1375,7 +1375,7 @@ func TestReminderHandler_RetryReminder(t *testing.T) {
 			handler.Send(c)
 		}
 
-		// Now try to retry - should be blocked by circuit breaker
+		// Now try to retry - should be queued since circuit breaker is open
 		c, w := setupTestContext("POST", "/api/reminders/reminder-2/retry", map[string]string{
 			"id": "reminder-2",
 		})
@@ -1384,15 +1384,17 @@ func TestReminderHandler_RetryReminder(t *testing.T) {
 
 		handler.RetryReminder(c)
 
-		if w.Code != http.StatusServiceUnavailable {
-			t.Errorf("Expected status %d, got %d", http.StatusServiceUnavailable, w.Code)
+		if w.Code != http.StatusOK {
+			t.Errorf("Expected status %d, got %d", http.StatusOK, w.Code)
 		}
 
 		var response map[string]interface{}
 		json.Unmarshal(w.Body.Bytes(), &response)
 
-		if response["code"] != "CIRCUIT_BREAKER_OPEN" {
-			t.Errorf("Expected code 'CIRCUIT_BREAKER_OPEN', got '%v'", response["code"])
+		// Should be queued instead of rejected
+		data := response["data"].(map[string]interface{})
+		if data["status"] != "queued" {
+			t.Errorf("Expected status 'queued', got '%v'", data["status"])
 		}
 	})
 
@@ -2146,6 +2148,370 @@ func TestReminderHandler_GetPatientReminders(t *testing.T) {
 		data := response["data"].([]interface{})
 		if len(data) != 1 {
 			t.Errorf("Expected 1 reminder, got %d", len(data))
+		}
+	})
+}
+
+func TestReminderHandler_CancelReminder(t *testing.T) {
+	t.Run("successful cancellation of pending reminder", func(t *testing.T) {
+		handler, store := setupTestHandler(t, nil)
+
+		store.Patients["patient-1"] = &models.Patient{
+			ID:        "patient-1",
+			Name:      "Test Patient",
+			Phone:     "08123456789",
+			CreatedBy: "user-1",
+			Reminders: []*models.Reminder{
+				{
+					ID:             "reminder-1",
+					Title:          "Test Reminder",
+					Description:    "Test Description",
+					DeliveryStatus: models.DeliveryStatusPending,
+				},
+			},
+		}
+
+		c, w := setupTestContext("POST", "/api/reminders/reminder-1/cancel", map[string]string{
+			"id": "reminder-1",
+		})
+		c.Set("userID", "user-1")
+		c.Set("role", "volunteer")
+
+		handler.CancelReminder(c)
+
+		if w.Code != http.StatusOK {
+			t.Errorf("Expected status %d, got %d. Body: %s", http.StatusOK, w.Code, w.Body.String())
+		}
+
+		var response map[string]interface{}
+		json.Unmarshal(w.Body.Bytes(), &response)
+
+		if response["message"] != "Reminder berhasil dibatalkan" {
+			t.Errorf("Expected success message, got %v", response["message"])
+		}
+
+		// Verify reminder was cancelled
+		reminder := store.Patients["patient-1"].Reminders[0]
+		if reminder.DeliveryStatus != models.DeliveryStatusCancelled {
+			t.Errorf("Expected delivery status 'cancelled', got '%s'", reminder.DeliveryStatus)
+		}
+		if reminder.CancelledAt == "" {
+			t.Error("Expected CancelledAt to be set")
+		}
+		if reminder.CancelledBy != "user-1" {
+			t.Errorf("Expected CancelledBy 'user-1', got '%s'", reminder.CancelledBy)
+		}
+
+		// Verify response data
+		data := response["data"].(map[string]interface{})
+		if data["status"] != models.DeliveryStatusCancelled {
+			t.Errorf("Expected status 'cancelled' in response, got %v", data["status"])
+		}
+	})
+
+	t.Run("successful cancellation of scheduled reminder", func(t *testing.T) {
+		handler, store := setupTestHandler(t, nil)
+
+		store.Patients["patient-1"] = &models.Patient{
+			ID:        "patient-1",
+			Name:      "Test Patient",
+			Phone:     "08123456789",
+			CreatedBy: "user-1",
+			Reminders: []*models.Reminder{
+				{
+					ID:                   "reminder-1",
+					Title:                "Scheduled Reminder",
+					Description:          "Test Description",
+					DeliveryStatus:       models.DeliveryStatusScheduled,
+					ScheduledDeliveryAt:  "2025-12-31T10:00:00Z",
+				},
+			},
+		}
+
+		c, w := setupTestContext("POST", "/api/reminders/reminder-1/cancel", map[string]string{
+			"id": "reminder-1",
+		})
+		c.Set("userID", "user-1")
+		c.Set("role", "volunteer")
+
+		handler.CancelReminder(c)
+
+		if w.Code != http.StatusOK {
+			t.Errorf("Expected status %d, got %d", http.StatusOK, w.Code)
+		}
+
+		reminder := store.Patients["patient-1"].Reminders[0]
+		if reminder.DeliveryStatus != models.DeliveryStatusCancelled {
+			t.Errorf("Expected delivery status 'cancelled', got '%s'", reminder.DeliveryStatus)
+		}
+	})
+
+	t.Run("reminder not found", func(t *testing.T) {
+		handler, store := setupTestHandler(t, nil)
+
+		store.Patients["patient-1"] = &models.Patient{
+			ID:        "patient-1",
+			Name:      "Test Patient",
+			Phone:     "08123456789",
+			CreatedBy: "user-1",
+			Reminders: []*models.Reminder{},
+		}
+
+		c, w := setupTestContext("POST", "/api/reminders/nonexistent/cancel", map[string]string{
+			"id": "nonexistent",
+		})
+		c.Set("userID", "user-1")
+		c.Set("role", "volunteer")
+
+		handler.CancelReminder(c)
+
+		if w.Code != http.StatusNotFound {
+			t.Errorf("Expected status %d, got %d", http.StatusNotFound, w.Code)
+		}
+
+		var response map[string]interface{}
+		json.Unmarshal(w.Body.Bytes(), &response)
+
+		if response["code"] != "REMINDER_NOT_FOUND" {
+			t.Errorf("Expected code 'REMINDER_NOT_FOUND', got %v", response["code"])
+		}
+	})
+
+	t.Run("forbidden for volunteer accessing other user reminder", func(t *testing.T) {
+		handler, store := setupTestHandler(t, nil)
+
+		store.Patients["patient-1"] = &models.Patient{
+			ID:        "patient-1",
+			Name:      "Test Patient",
+			Phone:     "08123456789",
+			CreatedBy: "other-user",
+			Reminders: []*models.Reminder{
+				{
+					ID:             "reminder-1",
+					Title:          "Test Reminder",
+					DeliveryStatus: models.DeliveryStatusPending,
+				},
+			},
+		}
+
+		c, w := setupTestContext("POST", "/api/reminders/reminder-1/cancel", map[string]string{
+			"id": "reminder-1",
+		})
+		c.Set("userID", "user-1")
+		c.Set("role", "volunteer")
+
+		handler.CancelReminder(c)
+
+		if w.Code != http.StatusForbidden {
+			t.Errorf("Expected status %d, got %d", http.StatusForbidden, w.Code)
+		}
+
+		var response map[string]interface{}
+		json.Unmarshal(w.Body.Bytes(), &response)
+
+		if response["code"] != "FORBIDDEN" {
+			t.Errorf("Expected code 'FORBIDDEN', got %v", response["code"])
+		}
+
+		// Verify reminder was NOT cancelled
+		reminder := store.Patients["patient-1"].Reminders[0]
+		if reminder.DeliveryStatus != models.DeliveryStatusPending {
+			t.Errorf("Expected reminder status to remain 'pending', got '%s'", reminder.DeliveryStatus)
+		}
+	})
+
+	t.Run("admin can cancel any reminder", func(t *testing.T) {
+		handler, store := setupTestHandler(t, nil)
+
+		store.Patients["patient-1"] = &models.Patient{
+			ID:        "patient-1",
+			Name:      "Test Patient",
+			Phone:     "08123456789",
+			CreatedBy: "other-user",
+			Reminders: []*models.Reminder{
+				{
+					ID:             "reminder-1",
+					Title:          "Test Reminder",
+					DeliveryStatus: models.DeliveryStatusPending,
+				},
+			},
+		}
+
+		c, w := setupTestContext("POST", "/api/reminders/reminder-1/cancel", map[string]string{
+			"id": "reminder-1",
+		})
+		c.Set("userID", "admin-user")
+		c.Set("role", "admin")
+
+		handler.CancelReminder(c)
+
+		if w.Code != http.StatusOK {
+			t.Errorf("Expected status %d, got %d", http.StatusOK, w.Code)
+		}
+
+		reminder := store.Patients["patient-1"].Reminders[0]
+		if reminder.DeliveryStatus != models.DeliveryStatusCancelled {
+			t.Errorf("Expected delivery status 'cancelled', got '%s'", reminder.DeliveryStatus)
+		}
+	})
+
+	t.Run("cannot cancel sent reminder", func(t *testing.T) {
+		handler, store := setupTestHandler(t, nil)
+
+		store.Patients["patient-1"] = &models.Patient{
+			ID:        "patient-1",
+			Name:      "Test Patient",
+			Phone:     "08123456789",
+			CreatedBy: "user-1",
+			Reminders: []*models.Reminder{
+				{
+					ID:             "reminder-1",
+					Title:          "Test Reminder",
+					DeliveryStatus: models.DeliveryStatusSent,
+				},
+			},
+		}
+
+		c, w := setupTestContext("POST", "/api/reminders/reminder-1/cancel", map[string]string{
+			"id": "reminder-1",
+		})
+		c.Set("userID", "user-1")
+		c.Set("role", "volunteer")
+
+		handler.CancelReminder(c)
+
+		if w.Code != http.StatusBadRequest {
+			t.Errorf("Expected status %d, got %d", http.StatusBadRequest, w.Code)
+		}
+
+		var response map[string]interface{}
+		json.Unmarshal(w.Body.Bytes(), &response)
+
+		if response["code"] != "CANNOT_CANCEL" {
+			t.Errorf("Expected code 'CANNOT_CANCEL', got %v", response["code"])
+		}
+
+		// Verify reminder was NOT cancelled
+		reminder := store.Patients["patient-1"].Reminders[0]
+		if reminder.DeliveryStatus != models.DeliveryStatusSent {
+			t.Errorf("Expected reminder status to remain 'sent', got '%s'", reminder.DeliveryStatus)
+		}
+	})
+
+	t.Run("cannot cancel failed reminder", func(t *testing.T) {
+		handler, store := setupTestHandler(t, nil)
+
+		store.Patients["patient-1"] = &models.Patient{
+			ID:        "patient-1",
+			Name:      "Test Patient",
+			Phone:     "08123456789",
+			CreatedBy: "user-1",
+			Reminders: []*models.Reminder{
+				{
+					ID:             "reminder-1",
+					Title:          "Test Reminder",
+					DeliveryStatus: models.DeliveryStatusFailed,
+				},
+			},
+		}
+
+		c, w := setupTestContext("POST", "/api/reminders/reminder-1/cancel", map[string]string{
+			"id": "reminder-1",
+		})
+		c.Set("userID", "user-1")
+		c.Set("role", "volunteer")
+
+		handler.CancelReminder(c)
+
+		if w.Code != http.StatusBadRequest {
+			t.Errorf("Expected status %d, got %d", http.StatusBadRequest, w.Code)
+		}
+
+		var response map[string]interface{}
+		json.Unmarshal(w.Body.Bytes(), &response)
+
+		if response["code"] != "CANNOT_CANCEL" {
+			t.Errorf("Expected code 'CANNOT_CANCEL', got %v", response["code"])
+		}
+
+		// Verify response includes current status
+		if response["current_status"] != models.DeliveryStatusFailed {
+			t.Errorf("Expected current_status 'failed', got %v", response["current_status"])
+		}
+	})
+
+	t.Run("cannot cancel sending reminder", func(t *testing.T) {
+		handler, store := setupTestHandler(t, nil)
+
+		store.Patients["patient-1"] = &models.Patient{
+			ID:        "patient-1",
+			Name:      "Test Patient",
+			Phone:     "08123456789",
+			CreatedBy: "user-1",
+			Reminders: []*models.Reminder{
+				{
+					ID:             "reminder-1",
+					Title:          "Test Reminder",
+					DeliveryStatus: models.DeliveryStatusSending,
+				},
+			},
+		}
+
+		c, w := setupTestContext("POST", "/api/reminders/reminder-1/cancel", map[string]string{
+			"id": "reminder-1",
+		})
+		c.Set("userID", "user-1")
+		c.Set("role", "volunteer")
+
+		handler.CancelReminder(c)
+
+		if w.Code != http.StatusBadRequest {
+			t.Errorf("Expected status %d, got %d", http.StatusBadRequest, w.Code)
+		}
+
+		var response map[string]interface{}
+		json.Unmarshal(w.Body.Bytes(), &response)
+
+		if response["code"] != "CANNOT_CANCEL" {
+			t.Errorf("Expected code 'CANNOT_CANCEL', got %v", response["code"])
+		}
+	})
+
+	t.Run("cannot cancel already cancelled reminder", func(t *testing.T) {
+		handler, store := setupTestHandler(t, nil)
+
+		store.Patients["patient-1"] = &models.Patient{
+			ID:        "patient-1",
+			Name:      "Test Patient",
+			Phone:     "08123456789",
+			CreatedBy: "user-1",
+			Reminders: []*models.Reminder{
+				{
+					ID:             "reminder-1",
+					Title:          "Test Reminder",
+					DeliveryStatus: models.DeliveryStatusCancelled,
+					CancelledAt:    "2025-12-30T10:00:00Z",
+				},
+			},
+		}
+
+		c, w := setupTestContext("POST", "/api/reminders/reminder-1/cancel", map[string]string{
+			"id": "reminder-1",
+		})
+		c.Set("userID", "user-1")
+		c.Set("role", "volunteer")
+
+		handler.CancelReminder(c)
+
+		if w.Code != http.StatusBadRequest {
+			t.Errorf("Expected status %d, got %d", http.StatusBadRequest, w.Code)
+		}
+
+		var response map[string]interface{}
+		json.Unmarshal(w.Body.Bytes(), &response)
+
+		if response["code"] != "CANNOT_CANCEL" {
+			t.Errorf("Expected code 'CANNOT_CANCEL', got %v", response["code"])
 		}
 	})
 }

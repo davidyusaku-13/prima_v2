@@ -1024,3 +1024,82 @@ func (h *ReminderHandler) GetPatientReminders(c *gin.Context) {
 		},
 	})
 }
+
+// CancelReminder handles POST /api/reminders/:id/cancel
+func (h *ReminderHandler) CancelReminder(c *gin.Context) {
+	reminderID := c.Param("id")
+	userID := c.GetString("userID")
+	role := c.GetString("role")
+
+	// Find reminder across all patients
+	h.store.Lock()
+	var patient *models.Patient
+	var reminder *models.Reminder
+
+	for _, p := range h.store.Patients {
+		for _, r := range p.Reminders {
+			if r.ID == reminderID {
+				patient = p
+				reminder = r
+				break
+			}
+		}
+		if reminder != nil {
+			break
+		}
+	}
+
+	if reminder == nil {
+		h.store.Unlock()
+		c.JSON(http.StatusNotFound, gin.H{"error": "Reminder not found", "code": "REMINDER_NOT_FOUND"})
+		return
+	}
+
+	// Check RBAC - volunteers can only cancel their own reminders
+	if role == RoleVolunteer && patient.CreatedBy != userID {
+		h.store.Unlock()
+		c.JSON(http.StatusForbidden, gin.H{"error": "insufficient permissions", "code": "FORBIDDEN"})
+		return
+	}
+
+	// Validate status - only pending or scheduled can be cancelled
+	if reminder.DeliveryStatus != models.DeliveryStatusPending &&
+		reminder.DeliveryStatus != models.DeliveryStatusScheduled {
+		h.store.Unlock()
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":          "Reminder tidak dapat dibatalkan",
+			"code":           "CANNOT_CANCEL",
+			"current_status": reminder.DeliveryStatus,
+		})
+		return
+	}
+
+	// Cancel the reminder
+	previousStatus := reminder.DeliveryStatus
+	reminder.DeliveryStatus = models.DeliveryStatusCancelled
+	reminder.CancelledAt = time.Now().UTC().Format(time.RFC3339)
+	reminder.CancelledBy = userID
+
+	h.store.Unlock()
+	h.store.SaveData()
+
+	// Log for audit
+	if h.logger != nil {
+		h.logger.Info("Reminder cancelled",
+			"reminder_id", reminderID,
+			"patient_id", patient.ID,
+			"cancelled_by", userID,
+			"previous_status", previousStatus,
+		)
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"data": gin.H{
+			"id":           reminder.ID,
+			"title":        reminder.Title,
+			"status":       reminder.DeliveryStatus,
+			"cancelled_at": reminder.CancelledAt,
+		},
+		"message": "Reminder berhasil dibatalkan",
+	})
+}

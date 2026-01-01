@@ -68,6 +68,7 @@ type Reminder struct {
 	RetryCount           int    `json:"retry_count,omitempty"`            // Number of retry attempts
 	ScheduledDeliveryAt  string `json:"scheduled_delivery_at,omitempty"` // ISO 8601 UTC - for quiet hours scheduling
 	CancelledAt          string `json:"cancelled_at,omitempty"`           // ISO 8601 UTC - when reminder was cancelled
+	CancelledBy          string `json:"cancelled_by,omitempty"`           // User ID who cancelled the reminder
 }
 
 // Patient represents a patient record

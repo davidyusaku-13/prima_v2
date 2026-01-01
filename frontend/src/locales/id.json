@@ -177,6 +177,16 @@
       "phone_too_short": "Nomor terlalu pendek (minimal 10 digit)",
       "update_and_retry": "Perbarui & Kirim Ulang"
     },
+    "cancel": {
+      "title": "Batalkan Reminder?",
+      "confirm": "Apakah Anda yakin ingin membatalkan reminder ini?",
+      "button": "Ya, Batalkan",
+      "cancelling": "Membatalkan...",
+      "success": "Reminder berhasil dibatalkan",
+      "error": "Gagal membatalkan reminder",
+      "cannot_cancel": "Reminder ini tidak dapat dibatalkan",
+      "scheduledTime": "Dijadwalkan"
+    },
     "failedNotification": "Reminder ke {patientName} gagal terkirim",
     "viewDetails": "Lihat Detail",
     "preview": {

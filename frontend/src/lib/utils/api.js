@@ -141,6 +141,20 @@ export async function retryReminder(token, reminderId) {
   return data.data;
 }
 
+export async function cancelReminder(token, reminderId) {
+  const res = await fetch(`${API_URL}/reminders/${reminderId}/cancel`, {
+    method: 'POST',
+    headers: getHeaders(token)
+  });
+  const data = await res.json();
+  if (!res.ok) {
+    const error = new Error(data.error || 'Failed to cancel reminder');
+    error.code = data.code;
+    throw error;
+  }
+  return data.data;
+}
+
 // Users (superadmin)
 export async function fetchUsers(token) {
   const res = await fetch(`${API_URL}/users`, {

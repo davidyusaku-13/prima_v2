@@ -396,6 +396,7 @@ func main() {
 		api.POST("/patients/:id/reminders/:reminderId/send", reminderHandler.Send)
 		api.GET("/reminders/:id/status", reminderHandler.GetReminderStatus)
 		api.POST("/reminders/:id/retry", reminderHandler.RetryReminder)
+		api.POST("/reminders/:id/cancel", reminderHandler.CancelReminder)
 
 		// User management routes (superadmin only)
 		api.GET("/users", requireRole(RoleSuperadmin), getUsers)
