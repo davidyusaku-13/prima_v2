@@ -60,8 +60,9 @@
   "navigation": {
     "dashboard": "Dashboard",
     "patients": "Patients",
+    "healthNews": "Health News",
+    "educationalVideos": "Educational Videos",
     "users": "Users",
-    "volunteerDashboard": "Volunteer Dashboard",
     "analytics": "Analytics"
   },
   "dashboard": {

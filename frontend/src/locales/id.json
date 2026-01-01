@@ -60,8 +60,9 @@
   "navigation": {
     "dashboard": "Beranda",
     "patients": "Pasien",
+    "healthNews": "Berita Kesehatan",
+    "educationalVideos": "Video Edukasi",
     "users": "Pengguna",
-    "volunteerDashboard": "Dasbor Relawan",
     "analytics": "Analitik"
   },
   "dashboard": {

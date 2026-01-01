@@ -202,7 +202,7 @@
                 <div class="flex items-center gap-1 sm:gap-2 flex-shrink-0">
                   <button
                     onclick={() => onOpenReminderModal(patient.id)}
-                    class="px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-medium text-teal-600 bg-teal-50 hover:bg-teal-100 border border-teal-200 transition-colors duration-200 flex items-center gap-1"
+                    class="h-9 sm:h-10 px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-medium text-teal-600 bg-teal-50 hover:bg-teal-100 border border-teal-200 transition-colors duration-200 flex items-center justify-center gap-1"
                     title={$t("patients.addReminder")}
                   >
                     <svg
@@ -222,7 +222,7 @@
                   </button>
                   <button
                     onclick={() => onOpenPatientModal(patient)}
-                    class="px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-medium text-slate-600 bg-slate-50 hover:bg-slate-100 border border-slate-200 transition-colors duration-200 flex items-center gap-1"
+                    class="h-9 sm:h-10 px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-medium text-slate-600 bg-slate-50 hover:bg-slate-100 border border-slate-200 transition-colors duration-200 flex items-center justify-center gap-1"
                     title={$t("common.edit")}
                   >
                     <svg
@@ -242,7 +242,7 @@
                   </button>
                   <button
                     onclick={() => onDeletePatient(patient.id)}
-                    class="px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-medium text-red-600 bg-red-50 hover:bg-red-100 border border-red-200 transition-colors duration-200 flex items-center gap-1"
+                    class="h-9 sm:h-10 px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-medium text-red-600 bg-red-50 hover:bg-red-100 border border-red-200 transition-colors duration-200 flex items-center justify-center gap-1"
                     title={$t("common.delete")}
                   >
                     <svg
