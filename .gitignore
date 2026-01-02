@@ -1,14 +1,14 @@
-.bmad-core/
 .claude/
 .github/
 .worktrees/
 .opencode/
+.agent/
+.windsurf/
+_bmad*
 frontend/.env
 backend/.env
 backend/config.yaml
 backend/*.exe
-_bmad-output/
-_bmad/
 node_modules
 CLAUDE.md
 AGENTS.md
@@ -16,3 +16,4 @@ GOWA-README.md
 QUILL.md
 tmp.log
 bun-test.md
+opencode.jsonc
