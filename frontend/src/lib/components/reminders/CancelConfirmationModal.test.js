@@ -56,7 +56,7 @@ describe("CancelConfirmationModal", () => {
     });
 
     await waitFor(() => {
-      expect(screen.getByText("Cancel Reminder?")).toBeInTheDocument();
+      expect(screen.getByText("Yes, Cancel")).toBeInTheDocument();
     });
     expect(screen.getByText("Test Reminder")).toBeInTheDocument();
     expect(screen.getByText("Test description")).toBeInTheDocument();
@@ -185,7 +185,7 @@ describe("CancelConfirmationModal", () => {
     });
 
     await waitFor(() => {
-      expect(screen.getByText("Cancel Reminder?")).toBeInTheDocument();
+      expect(screen.getByText("Yes, Cancel")).toBeInTheDocument();
     });
 
     // Simulate ESC key press on window
