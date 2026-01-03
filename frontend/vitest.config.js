@@ -25,6 +25,8 @@ export default defineConfig({
     include: ["src/**/*.test.js"],
     setupFiles: ["src/test/setup.js"],
     environment: "happy-dom",
+    // Memory optimization: sequential execution instead of forked pools
+    singleThread: true,
     // Vitest 4: inline Svelte for proper resolution
     server: {
       deps: {
