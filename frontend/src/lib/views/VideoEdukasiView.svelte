@@ -29,22 +29,14 @@
   }
 
   function getCategoryLabel(category) {
-    const labels = {
-      tutorial: $t('videoCategories.tutorial'),
-      firstAid: $t('videoCategories.firstAid'),
-      exercise: $t('videoCategories.exercise'),
-      nutrition: $t('videoCategories.nutrition'),
-      mentalHealth: $t('videoCategories.mentalHealth'),
-      childHealth: $t('videoCategories.childHealth'),
-      seniorHealth: $t('videoCategories.seniorHealth')
-    };
-    return labels[category] || category;
+    return $t(`videoCategories.${category}`);
   }
 
   function getCategoryColor(category, isSelected) {
     const base = 'px-4 py-2 rounded-full text-sm font-medium transition-all duration-200';
     if (isSelected) {
       const colors = {
+        all: 'bg-teal-600 text-white',
         tutorial: 'bg-blue-600 text-white',
         firstAid: 'bg-red-600 text-white',
         exercise: 'bg-green-600 text-white',
@@ -91,9 +83,9 @@
   <div class="flex flex-wrap gap-2">
     <button
       onclick={() => { selectedCategory = null; loadVideos(); }}
-      class="px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 {selectedCategory === null ? 'bg-teal-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}"
+      class={getCategoryColor('all', selectedCategory === null)}
     >
-      {$t('berita.allCategories')}
+      {$t('videoCategories.all')}
     </button>
     {#each categories as category}
       <button

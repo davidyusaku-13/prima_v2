@@ -330,7 +330,8 @@
     "allCategories": "All Categories",
     "featured": "Featured",
     "errorLoading": "Error loading article",
-    "noContent": "No content available."
+    "noContent": "No content available.",
+    "back": "Back"
   },
   "video": {
     "title": "Educational Videos",

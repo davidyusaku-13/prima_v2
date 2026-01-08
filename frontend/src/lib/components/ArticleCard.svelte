@@ -20,15 +20,7 @@
   }
 
   function getCategoryLabel(category) {
-    const categories = {
-      latest: $t('articleCategories.latest'),
-      policy: $t('articleCategories.policy'),
-      research: $t('articleCategories.research'),
-      outbreak: $t('articleCategories.outbreak'),
-      lifestyle: $t('articleCategories.lifestyle'),
-      local: $t('articleCategories.local')
-    };
-    return categories[category] || category || $t('articleCategories.latest');
+    return $t(`articleCategories.${category}`);
   }
 
   function getCategoryColor(category) {

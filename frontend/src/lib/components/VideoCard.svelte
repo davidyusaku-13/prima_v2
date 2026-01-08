@@ -27,16 +27,7 @@
   }
 
   function getCategoryLabel(category) {
-    const categories = {
-      tutorial: $t('videoCategories.tutorial'),
-      firstAid: $t('videoCategories.firstAid'),
-      exercise: $t('videoCategories.exercise'),
-      nutrition: $t('videoCategories.nutrition'),
-      mentalHealth: $t('videoCategories.mentalHealth'),
-      childHealth: $t('videoCategories.childHealth'),
-      seniorHealth: $t('videoCategories.seniorHealth')
-    };
-    return categories[category] || category || $t('videoCategories.all');
+    return $t(`videoCategories.${category}`);
   }
 
   function getCategoryColor(category) {

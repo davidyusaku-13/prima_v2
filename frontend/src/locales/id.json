@@ -331,7 +331,8 @@
     "allCategories": "Semua Kategori",
     "featured": "Unggulan",
     "errorLoading": "Gagal memuat artikel",
-    "noContent": "Konten tidak tersedia."
+    "noContent": "Konten tidak tersedia.",
+    "back": "Kembali"
   },
   "video": {
     "title": "Video Edukasi",

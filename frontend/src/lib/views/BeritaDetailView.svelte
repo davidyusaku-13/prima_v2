@@ -30,15 +30,7 @@
   }
 
   function getCategoryLabel(category) {
-    const categories = {
-      latest: $t('articleCategories.latest'),
-      policy: $t('articleCategories.policy'),
-      research: $t('articleCategories.research'),
-      outbreak: $t('articleCategories.outbreak'),
-      lifestyle: $t('articleCategories.lifestyle'),
-      local: $t('articleCategories.local')
-    };
-    return categories[category] || category || $t('articleCategories.latest');
+    return $t(`articleCategories.${category}`);
   }
 
   function getCategoryColor(category) {
@@ -78,7 +70,7 @@
     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
     </svg>
-    <span class="text-sm font-medium">{$t('common.close')}</span>
+    <span class="text-sm font-medium">{$t('berita.back')}</span>
   </button>
 
   <!-- Loading -->

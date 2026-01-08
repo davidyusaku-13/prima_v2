@@ -93,16 +93,7 @@
   }
 
   function getCategoryLabel(cat) {
-    const labels = {
-      tutorial: $t('videoCategories.tutorial'),
-      firstAid: $t('videoCategories.firstAid'),
-      exercise: $t('videoCategories.exercise'),
-      nutrition: $t('videoCategories.nutrition'),
-      mentalHealth: $t('videoCategories.mentalHealth'),
-      childHealth: $t('videoCategories.childHealth'),
-      seniorHealth: $t('videoCategories.seniorHealth')
-    };
-    return labels[cat] || cat;
+    return $t(`videoCategories.${cat}`);
   }
 </script>
 
