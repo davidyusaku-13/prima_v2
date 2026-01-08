@@ -1,11 +1,23 @@
 <script>
   import { t } from "svelte-i18n";
 
-  export let show = false;
-  export let editingPatient = null;
-  export let patientForm = { name: "", phone: "", email: "", notes: "" };
-  export let onClose = () => {};
-  export let onSave = () => {};
+  /**
+   * @typedef {Object} Props
+   * @property {boolean} show - Modal visibility
+   * @property {Object|null} editingPatient - Patient being edited (null = add mode)
+   * @property {Object} patientForm - Form data { name, phone, email, notes }
+   * @property {Function} onClose - Close modal callback
+   * @property {Function} onSave - Save callback
+   */
+
+  /** @type {Props} */
+  let {
+    show = false,
+    editingPatient = null,
+    patientForm = { name: "", phone: "", email: "", notes: "" },
+    onClose = () => {},
+    onSave = () => {}
+  } = $props();
 
   function handleSubmit(e) {
     e.preventDefault();

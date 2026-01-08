@@ -38,7 +38,7 @@
     <div>
       <h1 class="font-bold text-slate-900">{$t("app.name")}</h1>
       <p class="text-xs text-slate-500">
-        {$t("navigation.volunteerDashboard")}
+        {$t("app.tagline")}
       </p>
     </div>
   </div>

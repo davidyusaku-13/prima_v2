@@ -122,9 +122,35 @@
     "loadMore": "Muat Lebih Banyak",
     "filterByStatus": "Filter berdasarkan Status",
     "filterByPriority": "Filter berdasarkan Prioritas",
+    "cancelReminder": {
+      "title": "Batalkan Reminder?",
+      "confirm": "Apakah Anda yakin ingin membatalkan reminder ini?",
+      "button": "Ya, Batalkan",
+      "cancelling": "Membatalkan...",
+      "success": "Reminder berhasil dibatalkan",
+      "error": "Gagal membatalkan reminder",
+      "cannot_cancel": "Reminder ini tidak dapat dibatalkan",
+      "scheduledTime": "Dijadwalkan"
+    },
     "allHistoryLoaded": "Semua riwayat telah dimuat",
     "info": "Info",
-    "history": "Riwayat"
+    "history": "Riwayat",
+    "selectPatient": "Pilih pasien",
+    "selectPatientDescription": "Pilih pasien dari daftar untuk melihat detail",
+    "noRemindersDescription": "Buat pengingat untuk mengirim konten edukasi kesehatan",
+    "invalidPhoneError": "Nomor telepon tidak valid",
+    "createdAt": "Dibuat",
+    "back": "Kembali",
+    "backToPatientList": "Kembali ke daftar pasien",
+    "whatsappChat": "Chat WhatsApp",
+    "whatsappNoPhone": "Tidak ada nomor telepon",
+    "whatsappOpen": "Buka WhatsApp",
+    "whatsappNoPhoneAvailable": "Nomor telepon tidak tersedia",
+    "markAsIncomplete": "Tandai belum selesai",
+    "markAsComplete": "Tandai selesai",
+    "reminderCount": "{count} pengingat",
+    "patientActions": "Aksi pasien",
+    "tokenRequired": "Token diperlukan untuk melihat riwayat"
   },
   "reminders": {
     "title": "Judul",
@@ -466,6 +492,14 @@
     "failedRemindersCount": "{count} reminder gagal",
     "failedReminders": "Reminder Gagal",
     "noFailedReminders": "Tidak ada reminder gagal",
+    "status": {
+      "live": "Langsung",
+      "connecting": "Menghubungkan",
+      "offline": "Offline",
+      "connected": "Pembaruan real-time aktif",
+      "connectingStatus": "Menghubungkan...",
+      "disconnected": "Pembaruan real-time tidak tersedia"
+    },
     "failureReasons": {
       "invalidPhone": "Nomor tidak valid",
       "gowaTimeout": "GOWA timeout",

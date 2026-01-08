@@ -134,7 +134,23 @@
     },
     "allHistoryLoaded": "All history has been loaded",
     "info": "Info",
-    "history": "History"
+    "history": "History",
+    "selectPatient": "Select a patient",
+    "selectPatientDescription": "Choose a patient from the list to view details",
+    "noRemindersDescription": "Create a reminder to send health education content",
+    "invalidPhoneError": "Invalid phone number",
+    "createdAt": "Created",
+    "back": "Back",
+    "backToPatientList": "Back to patient list",
+    "whatsappChat": "Chat WhatsApp",
+    "whatsappNoPhone": "No phone number",
+    "whatsappOpen": "Open WhatsApp",
+    "whatsappNoPhoneAvailable": "No phone number available",
+    "markAsIncomplete": "Mark as incomplete",
+    "markAsComplete": "Mark as complete",
+    "reminderCount": "{count} reminders",
+    "patientActions": "Patient actions",
+    "tokenRequired": "Token required to view history"
   },
   "reminders": {
     "title": "Title",
@@ -470,6 +486,14 @@
     "failedRemindersCount": "{count} failed reminders",
     "failedReminders": "Failed Reminders",
     "noFailedReminders": "No failed reminders",
+    "status": {
+      "live": "Live",
+      "connecting": "Connecting",
+      "offline": "Offline",
+      "connected": "Real-time updates active",
+      "connectingStatus": "Connecting...",
+      "disconnected": "Real-time updates unavailable"
+    },
     "failureReasons": {
       "invalidPhone": "Invalid phone number",
       "gowaTimeout": "GOWA timeout",
