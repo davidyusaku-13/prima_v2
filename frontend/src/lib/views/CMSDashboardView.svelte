@@ -4,28 +4,36 @@
   import ArticleCard from '$lib/components/ArticleCard.svelte';
   import VideoCard from '$lib/components/VideoCard.svelte';
   import ContentListItem from '$lib/components/ContentListItem.svelte';
+  import ConfirmModal from '$lib/components/ConfirmModal.svelte';
   import * as api from '$lib/utils/api.js';
 
-  export let onNavigateToArticleEditor = () => {};
-  export let onNavigateToVideoManager = () => {};
-  export let onEditArticle = () => {};
-  export let onEditVideo = () => {};
-  export let token = null;
+  let {
+    onNavigateToArticleEditor = () => {},
+    onNavigateToVideoManager = () => {},
+    onEditArticle = () => {},
+    onEditVideo = () => {},
+    token = null
+  } = $props();
 
   // Data
-  let stats = { totalArticles: 0, totalVideos: 0, totalViews: 0, drafts: 0 };
-  let allArticles = [];
-  let allVideos = [];
-  let loading = true;
+  let stats = $state({ totalArticles: 0, totalVideos: 0, totalViews: 0, drafts: 0 });
+  let allArticles = $state([]);
+  let allVideos = $state([]);
+  let loading = $state(true);
 
   // UI State
-  let viewMode = 'list'; // 'list' or 'grid'
-  let activeFilter = 'all'; // 'all', 'articles', 'videos', 'drafts'
-  let sortBy = 'newest'; // 'newest', 'oldest', 'views', 'titleAZ'
-  let searchQuery = '';
-  let selectedItems = new Set();
-  let currentPage = 1;
+  let viewMode = $state('list'); // 'list' or 'grid'
+  let activeFilter = $state('all'); // 'all', 'articles', 'videos', 'drafts'
+  let sortBy = $state('newest'); // 'newest', 'oldest', 'views', 'titleAZ'
+  let searchQuery = $state('');
+  let selectedItems = $state(new Set());
+  let currentPage = $state(1);
   const itemsPerPage = 10;
+
+  // Delete confirmation modal state
+  let showDeleteModal = $state(false);
+  let deleteModalMessage = $state('');
+  let deleteModalCallback = $state(null);
 
   // Load view preference from localStorage
   onMount(() => {
@@ -61,7 +69,7 @@
   }
 
   // Combine and filter content
-  $: combinedContent = (() => {
+  let combinedContent = $derived((() => {
     let content = [];
 
     if (activeFilter === 'all' || activeFilter === 'articles') {
@@ -101,20 +109,22 @@
     });
 
     return content;
-  })();
+  })());
 
   // Pagination
-  $: totalPages = Math.ceil(combinedContent.length / itemsPerPage);
-  $: paginatedContent = combinedContent.slice(
+  let totalPages = $derived(Math.ceil(combinedContent.length / itemsPerPage));
+  let paginatedContent = $derived(combinedContent.slice(
     (currentPage - 1) * itemsPerPage,
     currentPage * itemsPerPage
-  );
+  ));
 
   // Reset to page 1 when filters change
-  $: if (activeFilter || searchQuery || sortBy) {
-    currentPage = 1;
-    selectedItems = new Set();
-  }
+  $effect(() => {
+    if (activeFilter || searchQuery || sortBy) {
+      currentPage = 1;
+      selectedItems = new Set();
+    }
+  });
 
   // View mode toggle
   function toggleViewMode(mode) {
@@ -160,49 +170,60 @@
       ? $t('articleEditor.deleteConfirm')
       : $t('videoManager.deleteConfirm');
 
-    if (!confirm(confirmMsg)) return;
-
-    try {
-      if (item.type === 'article') {
-        await api.deleteArticle(token, item.id);
-      } else {
-        await api.deleteVideo(token, item.id);
+    deleteModalMessage = confirmMsg;
+    deleteModalCallback = async () => {
+      try {
+        if (item.type === 'article') {
+          await api.deleteArticle(token, item.id);
+        } else {
+          await api.deleteVideo(token, item.id);
+        }
+        await loadDashboardData();
+        const newSet = new Set(selectedItems);
+        newSet.delete(item.id);
+        selectedItems = newSet;
+      } catch (e) {
+        console.error('Failed to delete:', e);
+        alert($t('common.error') + ': ' + e.message);
       }
-      await loadDashboardData();
-      const newSet = new Set(selectedItems);
-      newSet.delete(item.id);
-      selectedItems = newSet;
-    } catch (e) {
-      console.error('Failed to delete:', e);
-      alert($t('common.error') + ': ' + e.message);
-    }
+    };
+    showDeleteModal = true;
   }
 
   async function handleBulkDelete() {
     if (selectedItems.size === 0) return;
 
-    const confirmMsg = $t('cms.bulkActions.deleteSelected') + ` (${selectedItems.size})?`;
-    if (!confirm(confirmMsg)) return;
-
-    try {
-      const deletePromises = [];
-      paginatedContent.forEach(item => {
-        if (selectedItems.has(item.id)) {
-          if (item.type === 'article') {
-            deletePromises.push(api.deleteArticle(token, item.id));
-          } else {
-            deletePromises.push(api.deleteVideo(token, item.id));
+    deleteModalMessage = $t('cms.bulkDeleteConfirm', { values: { n: selectedItems.size } });
+    deleteModalCallback = async () => {
+      try {
+        const deletePromises = [];
+        paginatedContent.forEach(item => {
+          if (selectedItems.has(item.id)) {
+            if (item.type === 'article') {
+              deletePromises.push(api.deleteArticle(token, item.id));
+            } else {
+              deletePromises.push(api.deleteVideo(token, item.id));
+            }
           }
-        }
-      });
+        });
 
-      await Promise.all(deletePromises);
-      await loadDashboardData();
-      selectedItems = new Set();
-    } catch (e) {
-      console.error('Failed to bulk delete:', e);
-      alert($t('common.error') + ': ' + e.message);
+        await Promise.all(deletePromises);
+        await loadDashboardData();
+        selectedItems = new Set();
+      } catch (e) {
+        console.error('Failed to bulk delete:', e);
+        alert($t('common.error') + ': ' + e.message);
+      }
+    };
+    showDeleteModal = true;
+  }
+
+  function confirmDelete() {
+    if (deleteModalCallback) {
+      deleteModalCallback();
     }
+    showDeleteModal = false;
+    deleteModalCallback = null;
   }
 
   function handleEditItem(item) {
@@ -214,7 +235,7 @@
   }
 
   // Empty state message
-  $: emptyStateMessage = (() => {
+  let emptyStateMessage = $derived((() => {
     if (searchQuery.trim()) {
       return $t('cms.noSearchResults', { values: { query: searchQuery } });
     }
@@ -222,7 +243,7 @@
     if (activeFilter === 'videos') return $t('cms.noVideosFound');
     if (activeFilter === 'drafts') return $t('cms.noDraftsFound');
     return $t('cms.noContent');
-  })();
+  })());
 </script>
 
 <div class="space-y-6">
@@ -538,4 +559,15 @@
       {/if}
     </div>
   {/if}
+
+  <!-- Delete Confirmation Modal -->
+  <ConfirmModal
+    show={showDeleteModal}
+    message={deleteModalMessage}
+    onClose={() => {
+      showDeleteModal = false;
+      deleteModalCallback = null;
+    }}
+    onConfirm={confirmDelete}
+  />
 </div>

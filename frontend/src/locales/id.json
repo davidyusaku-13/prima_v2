@@ -105,6 +105,7 @@
     "filters": "Filter",
     "deletePatientTitle": "Hapus Pasien",
     "deletePatientMessage": "Apakah Anda yakin ingin menghapus pasien ini?",
+    "deleteConfirmation": "Apakah Anda yakin ingin menghapus pasien ini? Tindakan ini tidak dapat dibatalkan.",
     "reminderHistory": "Riwayat Reminder",
     "noReminderHistory": "Belum ada riwayat reminder untuk pasien ini",
     "createFirstReminder": "Buat reminder pertama untuk memulai pelacakan",
@@ -310,6 +311,7 @@
       "selectAll": "Pilih Semua",
       "deselectAll": "Batalkan Pilihan"
     },
+    "bulkDeleteConfirm": "Apakah Anda yakin ingin menghapus {n} item? Tindakan ini tidak dapat dibatalkan.",
     "noContent": "Tidak ada konten",
     "noArticlesFound": "Tidak ada artikel",
     "noVideosFound": "Tidak ada video",

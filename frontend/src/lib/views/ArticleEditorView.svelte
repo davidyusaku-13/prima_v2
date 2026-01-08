@@ -2,6 +2,7 @@
   import { t } from 'svelte-i18n';
   import ImageUploader from '$lib/components/ImageUploader.svelte';
   import QuillEditor from '$lib/components/QuillEditor.svelte';
+  import ConfirmModal from '$lib/components/ConfirmModal.svelte';
   import * as api from '$lib/utils/api.js';
 
   export let article = null;
@@ -20,6 +21,7 @@
   let saving = false;
   let error = null;
   let isPreview = false;
+  let showDeleteModal = false;
 
   const categories = ['latest', 'policy', 'research', 'outbreak', 'lifestyle', 'local'];
 
@@ -103,8 +105,12 @@
 
   async function handleDelete() {
     if (!article?.id) return;
-    if (!confirm($t('articleEditor.deleteConfirm'))) return;
+    showDeleteModal = true;
+  }
 
+  async function confirmDelete() {
+    if (!article?.id) return;
+    showDeleteModal = false;
     saving = true;
     try {
       await api.deleteArticle(token, article.id);
@@ -328,3 +334,11 @@
     </div>
   </div>
 </div>
+
+<!-- Delete Confirmation Modal -->
+<ConfirmModal
+  show={showDeleteModal}
+  message={$t('articleEditor.deleteConfirm')}
+  onClose={() => showDeleteModal = false}
+  onConfirm={confirmDelete}
+/>

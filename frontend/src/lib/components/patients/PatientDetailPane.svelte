@@ -359,45 +359,45 @@
         <div class="space-y-6">
           <div class="grid grid-cols-1 gap-4">
             <div>
-              <label
+              <span
                 class="block text-xs font-medium text-slate-500 uppercase tracking-wide mb-1"
               >
                 {$t("patients.patientName")}
-              </label>
+              </span>
               <p class="text-slate-900">{patient.name || "-"}</p>
             </div>
             <div>
-              <label
+              <span
                 class="block text-xs font-medium text-slate-500 uppercase tracking-wide mb-1"
               >
                 {$t("patients.phone")}
-              </label>
+              </span>
               <p class="text-slate-900">{patient.phone || "-"}</p>
             </div>
             <div>
-              <label
+              <span
                 class="block text-xs font-medium text-slate-500 uppercase tracking-wide mb-1"
               >
                 {$t("patients.email")}
-              </label>
+              </span>
               <p class="text-slate-900">{patient.email || "-"}</p>
             </div>
             {#if patient.notes}
               <div>
-                <label
+                <span
                   class="block text-xs font-medium text-slate-500 uppercase tracking-wide mb-1"
                 >
                   {$t("patients.notes")}
-                </label>
+                </span>
                 <p class="text-slate-900">{patient.notes}</p>
               </div>
             {/if}
             <div>
-              <label
+              <span
                 class="block text-xs font-medium text-slate-500 uppercase tracking-wide mb-1"
               >
                 {$t("patients.createdAt")}
-              </label>
+              </span>
               <p class="text-slate-900">{formatDate(patient.createdAt)}</p>
             </div>
           </div>

@@ -5,6 +5,7 @@
   import { deliveryStore } from "$lib/stores/delivery.svelte.js";
   import PatientListPane from "$lib/components/patients/PatientListPane.svelte";
   import PatientDetailPane from "$lib/components/patients/PatientDetailPane.svelte";
+  import ConfirmModal from "$lib/components/ConfirmModal.svelte";
 
   let {
     patients = [],
@@ -31,6 +32,10 @@
 
   // Detail pane tab state
   let activeTab = $state("info");
+
+  // Delete confirmation modal state
+  let showDeleteModal = $state(false);
+  let pendingDeleteId = $state(null);
 
   // Initialize selectedPatientId from session storage on mount
   onMount(() => {
@@ -164,14 +169,24 @@
    * @param {string} patientId
    */
   function handleDeletePatient(patientId) {
-    if (confirm($t("patients.deleteConfirmation"))) {
-      onDeletePatient(patientId);
+    pendingDeleteId = patientId;
+    showDeleteModal = true;
+  }
+
+  /**
+   * Confirm patient deletion from modal
+   */
+  function confirmDeletePatient() {
+    if (pendingDeleteId) {
+      onDeletePatient(pendingDeleteId);
       // Clear selection if deleted patient was selected
-      if (selectedPatientId === patientId) {
+      if (selectedPatientId === pendingDeleteId) {
         selectedPatientId = null;
         showMobileDetailPane = false;
       }
     }
+    showDeleteModal = false;
+    pendingDeleteId = null;
   }
 
   /**
@@ -363,4 +378,15 @@
       </div>
     </div>
   </div>
+
+  <!-- Delete Confirmation Modal -->
+  <ConfirmModal
+    show={showDeleteModal}
+    message={$t("patients.deleteConfirmation")}
+    onClose={() => {
+      showDeleteModal = false;
+      pendingDeleteId = null;
+    }}
+    onConfirm={confirmDeletePatient}
+  />
 </div>

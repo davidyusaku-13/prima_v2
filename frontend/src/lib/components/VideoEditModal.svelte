@@ -1,6 +1,7 @@
 <script>
   import { t } from 'svelte-i18n';
   import * as api from '$lib/utils/api.js';
+  import ConfirmModal from './ConfirmModal.svelte';
 
   export let video = null;
   export let onClose = () => {};
@@ -11,6 +12,7 @@
   let description = video?.description || '';
   let saving = false;
   let error = null;
+  let showDeleteModal = false;
 
   function getCategoryLabel(cat) {
     const labels = {
@@ -49,8 +51,11 @@
   }
 
   async function handleDelete() {
-    if (!confirm($t('videoManager.deleteConfirm'))) return;
+    showDeleteModal = true;
+  }
 
+  async function confirmDelete() {
+    showDeleteModal = false;
     saving = true;
     try {
       await api.deleteVideo(token, video.id);
@@ -201,3 +206,11 @@
     </div>
   </div>
 </div>
+
+<!-- Delete Confirmation Modal -->
+<ConfirmModal
+  show={showDeleteModal}
+  message={$t('videoManager.deleteConfirm')}
+  onClose={() => showDeleteModal = false}
+  onConfirm={confirmDelete}
+/>
