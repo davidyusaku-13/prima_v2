@@ -1,8 +1,9 @@
 # Data Models - Backend
 
-**Generated:** January 2, 2026  
-**Project:** PRIMA Healthcare Volunteer Dashboard  
+**Generated:** January 11, 2026 (Updated)
+**Project:** PRIMA Healthcare Volunteer Dashboard
 **Persistence:** JSON files with `sync.RWMutex` thread-safety
+**Scan Type:** Exhaustive Rescan
 
 ---
 

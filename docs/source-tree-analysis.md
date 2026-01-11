@@ -1,7 +1,8 @@
 # Source Tree Analysis - PRIMA
 
-**Generated:** January 2, 2026  
-**Project Root:** `e:\Portfolio\Web\prima_v2`
+**Generated:** January 11, 2026 (Updated)
+**Project Root:** `C:\BACKUP\Portfolio\Web\prima_v2`
+**Scan Type:** Exhaustive Rescan
 
 ---
 

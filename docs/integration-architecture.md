@@ -1,8 +1,9 @@
 # Integration Architecture - PRIMA
 
-**Generated:** January 2, 2026  
-**Project:** Healthcare Volunteer Dashboard  
+**Generated:** January 11, 2026 (Updated)
+**Project:** Healthcare Volunteer Dashboard
 **Architecture Type:** Multi-Part (Backend API + Frontend SPA + External Services)
+**Scan Type:** Exhaustive Rescan
 
 ---
 

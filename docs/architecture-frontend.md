@@ -1,8 +1,9 @@
 # Architecture - Frontend (Svelte 5 + Vite)
 
-**Generated:** January 2, 2026  
-**Project:** PRIMA Healthcare Volunteer Dashboard  
+**Generated:** January 11, 2026 (Updated)
+**Project:** PRIMA Healthcare Volunteer Dashboard
 **Technology:** Svelte 5.43.8 + Vite 7.2.4 (**NOT SvelteKit**)
+**Scan Type:** Exhaustive Rescan
 
 ---
 

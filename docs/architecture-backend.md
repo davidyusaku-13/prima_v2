@@ -1,8 +1,9 @@
 # Architecture - Backend (Go/Gin)
 
-**Generated:** January 2, 2026  
-**Project:** PRIMA Healthcare Volunteer Dashboard  
+**Generated:** January 11, 2026 (Updated)
+**Project:** PRIMA Healthcare Volunteer Dashboard
 **Technology:** Go 1.25.5 + Gin v1.11.0
+**Scan Type:** Exhaustive Rescan
 
 ---
 

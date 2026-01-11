@@ -1,8 +1,9 @@
 # API Contracts - Backend
 
-**Generated:** January 2, 2026  
-**Base URL:** `http://localhost:8080/api`  
+**Generated:** January 11, 2026 (Updated)
+**Base URL:** `http://localhost:8080/api`
 **Project:** PRIMA Healthcare Volunteer Dashboard
+**Scan Type:** Exhaustive Rescan
 
 ---
 

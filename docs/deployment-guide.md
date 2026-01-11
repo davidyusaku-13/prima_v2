@@ -1,8 +1,9 @@
 # Deployment Guide - PRIMA
 
-**Generated:** January 2, 2026  
-**Project:** PRIMA Healthcare Volunteer Dashboard  
+**Generated:** January 11, 2026 (Updated)
+**Project:** PRIMA Healthcare Volunteer Dashboard
 **Stack:** Go/Gin Backend + Svelte 5/Vite Frontend
+**Scan Type:** Exhaustive Rescan
 
 ---
 

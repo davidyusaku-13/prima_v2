@@ -1,8 +1,27 @@
 # Development Guide - Frontend (Svelte 5 + Vite)
 
-**Generated:** January 2, 2026  
-**Project:** PRIMA Healthcare Volunteer Dashboard  
+**Generated:** January 11, 2026 (Updated)
+**Project:** PRIMA Healthcare Volunteer Dashboard
 **Technology:** Svelte 5.43.8 + Vite 7.2.4 (**NOT SvelteKit**)
+**Scan Type:** Exhaustive Rescan
+
+---
+
+## CRITICAL: This is NOT SvelteKit
+
+**PRIMA uses Vite + Svelte 5 directly. It is NOT a SvelteKit project.**
+
+The following imports will **break the build**:
+
+| Prohibited Import | Use Instead |
+|-------------------|-------------|
+| `import { goto } from '$app/navigation'` | `window.location.href = '/path'` |
+| `import { page } from '$app/stores'` | Use props or context |
+| `import { browser } from '$app/environment'` | `typeof window !== 'undefined'` |
+
+**Why?** SvelteKit provides SSR, routing, and `$app/*` modules. PRIMA is a pure SPA using Vite for bundling and manual routing via localStorage.
+
+If you see `Cannot find module '$app/...'` errors, you've used a SvelteKit pattern in a non-SvelteKit project.
 
 ---
 

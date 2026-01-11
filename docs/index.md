@@ -1,24 +1,48 @@
 # PRIMA Documentation Index
 
-**Healthcare Volunteer Dashboard - Technical Documentation**  
-**Generated:** January 2, 2026  
-**Version:** Exhaustive Scan  
+**Healthcare Volunteer Dashboard - Technical Documentation**
+**Last Updated:** January 11, 2026 (Exhaustive Rescan)
+**Version:** Exhaustive Scan
 **Project Type:** Backend (Go/Gin) + Frontend (Svelte 5 + Vite)
 
 ---
 
-## 🎯 Quick Navigation
+## Quick Navigation
 
+- [Quickstart](#-quickstart) - Get running in 5 minutes
 - [Technology Stack](#-technology-stack)
 - [Architecture](#-architecture)
 - [API Reference](#-api-reference)
 - [Data Models](#-data-models)
 - [Development Guides](#-development-guides)
+- [Testing Guide](#-testing-guide)
+- [Error Codes](#-error-codes)
+- [User Guide](#-user-guide)
 - [Existing Documentation](#-existing-documentation)
 
 ---
 
-## 📦 Technology Stack
+## Quickstart
+
+**Document:** [quickstart.md](./quickstart.md)
+
+Get PRIMA running in 5 minutes. Prerequisites, install, first user journey.
+
+**Quick Commands:**
+
+```bash
+# Backend (port 8080)
+cd backend && go run main.go
+
+# Frontend (port 5173)
+cd frontend && bun run dev
+```
+
+**Default Login:** superadmin / superadmin
+
+---
+
+## Technology Stack
 
 **Document:** [technology-stack.md](./technology-stack.md)
 
@@ -858,10 +882,11 @@ docs(api): update webhook signature validation
 
 ---
 
-## 📋 Document Status
+## Document Status
 
-### ✅ Complete (11 Documents)
+### Complete (17 Documents)
 
+**Core Documentation (11):**
 - [x] Technology Stack
 - [x] API Contracts (Backend)
 - [x] Data Models (Backend)
@@ -874,21 +899,27 @@ docs(api): update webhook signature validation
 - [x] Component Inventory (Frontend)
 - [x] Deployment Guide
 
-### 📝 To Be Generated (0 Documents)
+**New Documentation (6):**
+- [x] [Quickstart Guide](./quickstart.md) - 5-minute onboarding
+- [x] [User Guide](./user-guide.md) - Non-technical user manual
+- [x] [Testing Guide](./testing-guide.md) - Comprehensive testing docs
+- [x] [Error Codes](./error-codes.md) - Centralized error reference
+- [x] [Architecture Decisions](./architecture-decisions.md) - ADR log
+- [x] [AI Context](./ai-context.md) - Optimized context for AI assistants
 
-_All planned documentation has been generated._
+**Automation:**
+- [x] `scripts/validate-docs.sh` - CI documentation validation
 
-### 📌 Notes
+### Notes
 
-- This index was generated via exhaustive scan (reads ALL source files)
-- Scan date: January 2, 2026
-- Documentation completed: January 2, 2026
-- Project version: Current (no formal versioning)
-- Documentation will be updated as project evolves
+- Original Scan: January 2, 2026
+- Rescan: January 11, 2026
+- Advanced Elicitation: January 11, 2026 (added 6 new documents)
+- All documentation verified and current
 
 ---
 
-**Last Updated:** January 2, 2026  
-**Scan Type:** Exhaustive  
-**Total Documents:** 11 complete
+**Last Updated:** January 11, 2026
+**Scan Type:** Exhaustive Rescan + Advanced Elicitation
+**Total Documents:** 17 complete
 **For Questions:** Refer to existing docs or create GitHub issue
