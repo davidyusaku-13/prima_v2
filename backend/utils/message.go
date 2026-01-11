@@ -2,7 +2,10 @@ package utils
 
 import (
 	"fmt"
+	"sort"
 	"strings"
+
+	"github.com/davidyusaku-13/prima_v2/models"
 )
 
 // MaxExcerptLength is the maximum length for article excerpts
@@ -107,34 +110,64 @@ func FormatReminderMessageWithExcerpts(params ReminderMessageParams, attachments
 	return sb.String()
 }
 
-// FormatReminderMessage creates the WhatsApp message content for a reminder
-func FormatReminderMessage(params ReminderMessageParams) string {
-	var sb strings.Builder
+// BuildContentAttachments builds ContentAttachment slice from reminder attachments
+// Looks up article/video content from content stores to get excerpts and URLs
+// Sorts attachments: articles first, then videos
+// Thread-safe: handles mutex locking internally for content store access
+func BuildContentAttachments(attachments []models.Attachment, articleStore *models.ArticleStore, videoStore *models.VideoStore) []ContentAttachment {
+	var contentAttachments []ContentAttachment
 
-	sb.WriteString(fmt.Sprintf("Halo %s,\n\n", params.PatientName))
-	sb.WriteString(fmt.Sprintf("*%s*\n\n", params.ReminderTitle))
-
-	if params.ReminderDescription != "" {
-		sb.WriteString(params.ReminderDescription)
-		sb.WriteString("\n\n")
-	}
-
-	// Add attachments if present
-	if len(params.Attachments) > 0 {
-		sb.WriteString("---\n")
-		sb.WriteString("Konten Edukasi:\n")
-		for _, attachment := range params.Attachments {
-			sb.WriteString(attachment)
-			sb.WriteString("\n")
+	for _, att := range attachments {
+		contentAtt := ContentAttachment{
+			Type:  att.Type,
+			Title: att.Title,
 		}
-		sb.WriteString("\n")
+
+		if att.Type == "article" && articleStore != nil {
+			// Look up article for excerpt
+			articleStore.Mu.RLock()
+			if article, exists := articleStore.Articles[att.ID]; exists {
+				contentAtt.Excerpt = article.Excerpt
+				// Generate article URL from slug
+				if article.Slug != "" {
+					contentAtt.URL = fmt.Sprintf("https://prima.app/artikel/%s", article.Slug)
+				}
+			} else {
+				// Article not found - use fallback text
+				contentAtt.Excerpt = "Konten tidak tersedia"
+			}
+			articleStore.Mu.RUnlock()
+		} else if att.Type == "video" && videoStore != nil {
+			// Look up video for YouTube ID
+			videoStore.Mu.RLock()
+			if video, exists := videoStore.Videos[att.ID]; exists {
+				// Generate YouTube URL from YouTube ID
+				if video.YouTubeID != "" {
+					contentAtt.URL = fmt.Sprintf("https://youtube.com/watch?v=%s", video.YouTubeID)
+				}
+			} else {
+				// Video not found - use fallback text (consistent with article handling)
+				contentAtt.Excerpt = "Konten tidak tersedia"
+			}
+			videoStore.Mu.RUnlock()
+		}
+
+		// Fallback to attachment URL if content store lookup didn't provide one
+		if contentAtt.URL == "" && att.URL != "" {
+			contentAtt.URL = att.URL
+		}
+
+		contentAttachments = append(contentAttachments, contentAtt)
 	}
 
-	// Add health disclaimer if enabled
-	if params.DisclaimerEnabled && params.DisclaimerText != "" {
-		sb.WriteString("---\n")
-		sb.WriteString(fmt.Sprintf("_%s_", params.DisclaimerText))
-	}
+	// Sort attachments: articles first, then videos (stable sort preserves original order within same type)
+	sort.SliceStable(contentAttachments, func(i, j int) bool {
+		if contentAttachments[i].Type == contentAttachments[j].Type {
+			// Same type - maintain original order
+			return false
+		}
+		return contentAttachments[i].Type == "article"
+	})
 
-	return sb.String()
+	return contentAttachments
 }

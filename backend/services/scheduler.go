@@ -17,14 +17,16 @@ type SSEHandler interface {
 
 // ReminderScheduler handles automatic sending of scheduled reminders
 type ReminderScheduler struct {
-	store      *models.PatientStore
-	gowaClient *GOWAClient
-	config     *config.Config
-	logger     *slog.Logger
-	sseHandler SSEHandler // SSE handler for broadcasting delivery status updates
-	stopCh     chan struct{}
-	wg         sync.WaitGroup
-	interval   time.Duration
+	store         *models.PatientStore
+	gowaClient    *GOWAClient
+	config        *config.Config
+	logger        *slog.Logger
+	sseHandler    SSEHandler // SSE handler for broadcasting delivery status updates
+	articleStore  *models.ArticleStore
+	videoStore    *models.VideoStore
+	stopCh        chan struct{}
+	wg            sync.WaitGroup
+	interval      time.Duration
 }
 
 // NewReminderScheduler creates a new reminder scheduler
@@ -43,6 +45,12 @@ func NewReminderScheduler(store *models.PatientStore, gowaClient *GOWAClient, cf
 // SetSSEHandler sets the SSE handler for broadcasting delivery status updates
 func (s *ReminderScheduler) SetSSEHandler(sseHandler SSEHandler) {
 	s.sseHandler = sseHandler
+}
+
+// SetContentStores sets the article and video stores for attachment lookup
+func (s *ReminderScheduler) SetContentStores(articleStore *models.ArticleStore, videoStore *models.VideoStore) {
+	s.articleStore = articleStore
+	s.videoStore = videoStore
 }
 
 // Start begins the scheduler goroutine
@@ -297,11 +305,27 @@ func (s *ReminderScheduler) sendScheduledReminder(patientID string, patient *mod
 	patientName := currentPatient.Name
 	reminderTitle := currentReminder.Title
 	reminderDescription := currentReminder.Description
+	// Capture attachments for content lookup (copy to avoid holding lock)
+	var attachments []models.Attachment
+	if len(currentReminder.Attachments) > 0 {
+		attachments = make([]models.Attachment, len(currentReminder.Attachments))
+		copy(attachments, currentReminder.Attachments)
+	}
 	s.store.Unlock()
 	s.store.SaveData()
 
-	// Format message (using captured values, no lock needed)
-	message := s.formatReminderMessageFromValues(reminderTitle, reminderDescription, patientName)
+	// Build content attachments with excerpts/URLs from content stores
+	contentAttachments := utils.BuildContentAttachments(attachments, s.articleStore, s.videoStore)
+
+	// Format message with attachments
+	disclaimerEnabled := s.config.Disclaimer.Enabled != nil && *s.config.Disclaimer.Enabled
+	message := utils.FormatReminderMessageWithExcerpts(utils.ReminderMessageParams{
+		PatientName:         patientName,
+		ReminderTitle:       reminderTitle,
+		ReminderDescription: reminderDescription,
+		DisclaimerText:      s.config.Disclaimer.Text,
+		DisclaimerEnabled:   disclaimerEnabled,
+	}, contentAttachments)
 
 	// Send via GOWA (outside lock)
 	whatsappPhone := utils.FormatWhatsAppNumber(patient.Phone)
@@ -379,19 +403,6 @@ func findReminderByID(patient *models.Patient, reminderID string) *models.Remind
 	return nil
 }
 
-// formatReminderMessageFromValues creates the WhatsApp message content from values
-func (s *ReminderScheduler) formatReminderMessageFromValues(title, description, patientName string) string {
-	disclaimerEnabled := s.config.Disclaimer.Enabled != nil && *s.config.Disclaimer.Enabled
-
-	return utils.FormatReminderMessage(utils.ReminderMessageParams{
-		PatientName:         patientName,
-		ReminderTitle:       title,
-		ReminderDescription: description,
-		DisclaimerText:      s.config.Disclaimer.Text,
-		DisclaimerEnabled:   disclaimerEnabled,
-	})
-}
-
 // processRetryReminder handles retrying a failed reminder
 func (s *ReminderScheduler) processRetryReminder(patientID string, patient *models.Patient, reminder *models.Reminder) {
 	reminderID := reminder.ID
@@ -441,10 +452,27 @@ func (s *ReminderScheduler) processRetryReminder(patientID string, patient *mode
 	patientName := currentPatient.Name
 	reminderTitle := currentReminder.Title
 	reminderDescription := currentReminder.Description
+	// Capture attachments for content lookup (copy to avoid holding lock)
+	var attachments []models.Attachment
+	if len(currentReminder.Attachments) > 0 {
+		attachments = make([]models.Attachment, len(currentReminder.Attachments))
+		copy(attachments, currentReminder.Attachments)
+	}
 	s.store.Unlock()
+	s.store.SaveData()
 
-	// Format message
-	message := s.formatReminderMessageFromValues(reminderTitle, reminderDescription, patientName)
+	// Build content attachments with excerpts/URLs from content stores
+	contentAttachments := utils.BuildContentAttachments(attachments, s.articleStore, s.videoStore)
+
+	// Format message with attachments
+	disclaimerEnabled := s.config.Disclaimer.Enabled != nil && *s.config.Disclaimer.Enabled
+	message := utils.FormatReminderMessageWithExcerpts(utils.ReminderMessageParams{
+		PatientName:         patientName,
+		ReminderTitle:       reminderTitle,
+		ReminderDescription: reminderDescription,
+		DisclaimerText:      s.config.Disclaimer.Text,
+		DisclaimerEnabled:   disclaimerEnabled,
+	}, contentAttachments)
 
 	// Send via GOWA
 	whatsappPhone := utils.FormatWhatsAppNumber(patient.Phone)

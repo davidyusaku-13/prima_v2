@@ -579,63 +579,17 @@ func (h *ReminderHandler) Send(c *gin.Context) {
 }
 
 // buildContentAttachments builds ContentAttachment slice from reminder attachments
-// Looks up article/video content from content store to get excerpts and URLs
-// Sorts attachments: articles first, then videos (AC #3)
+// Uses the shared utils.BuildContentAttachments function
 func (h *ReminderHandler) buildContentAttachments(reminder *models.Reminder) []utils.ContentAttachment {
-	var attachments []utils.ContentAttachment
+	var articleStore *models.ArticleStore
+	var videoStore *models.VideoStore
 
-	for _, att := range reminder.Attachments {
-		contentAtt := utils.ContentAttachment{
-			Type:  att.Type,
-			Title: att.Title,
-		}
-
-		if h.contentStore != nil {
-			if att.Type == "article" {
-				// Look up article for excerpt
-				h.contentStore.Articles.Mu.RLock()
-				if article, exists := h.contentStore.Articles.Articles[att.ID]; exists {
-					contentAtt.Excerpt = article.Excerpt
-					// Generate article URL from slug
-					if article.Slug != "" {
-						contentAtt.URL = fmt.Sprintf("https://prima.app/artikel/%s", article.Slug)
-					}
-				} else {
-					// Article not found - use fallback text
-					contentAtt.Excerpt = "Konten tidak tersedia"
-				}
-				h.contentStore.Articles.Mu.RUnlock()
-			} else if att.Type == "video" {
-				// Look up video for YouTube ID
-				h.contentStore.Videos.Mu.RLock()
-				if video, exists := h.contentStore.Videos.Videos[att.ID]; exists {
-					// Generate YouTube URL from YouTube ID
-					if video.YouTubeID != "" {
-						contentAtt.URL = fmt.Sprintf("https://youtube.com/watch?v=%s", video.YouTubeID)
-					}
-				}
-				h.contentStore.Videos.Mu.RUnlock()
-			}
-		}
-
-		// Fallback to attachment URL if content store lookup didn't provide one
-		if contentAtt.URL == "" && att.URL != "" {
-			contentAtt.URL = att.URL
-		}
-
-		attachments = append(attachments, contentAtt)
+	if h.contentStore != nil {
+		articleStore = h.contentStore.Articles
+		videoStore = h.contentStore.Videos
 	}
 
-	// Sort attachments: articles first, then videos (AC #3 requirement)
-	sort.Slice(attachments, func(i, j int) bool {
-		if attachments[i].Type == attachments[j].Type {
-			// Same type - maintain original order based on reminder.Attachments
-			return false
-		}
-		return attachments[i].Type == "article"
-	})
-
-	return attachments
+	return utils.BuildContentAttachments(reminder.Attachments, articleStore, videoStore)
 }
 
 // formatReminderMessage creates the WhatsApp message content with excerpts

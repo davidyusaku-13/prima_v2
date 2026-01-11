@@ -269,9 +269,8 @@ func main() {
 	// Create default superadmin if not exists
 	createDefaultSuperadmin()
 
-	// Initialize and start reminder scheduler for quiet hours
+	// Initialize reminder scheduler for quiet hours (Start() called after all setters)
 	scheduler = services.NewReminderScheduler(patientStore, gowaClient, appConfig, appLogger)
-	scheduler.Start()
 
 	// Initialize webhook handler for GOWA delivery status updates
 	webhookHandler = handlers.NewWebhookHandler(patientStore, appConfig, appLogger)
@@ -287,6 +286,12 @@ func main() {
 
 	// Connect SSE handler to scheduler for auto-send broadcasts
 	scheduler.SetSSEHandler(sseHandler)
+
+	// Connect content stores to scheduler for attachment lookup
+	scheduler.SetContentStores(contentStore.Articles, contentStore.Videos)
+
+	// Start scheduler after all setters are configured (avoids race conditions)
+	scheduler.Start()
 
 	// Initialize analytics handler for delivery statistics
 	analyticsHandler = handlers.NewAnalyticsHandler(patientStore)

@@ -7,11 +7,13 @@ import (
 	"net/http/httptest"
 	"os"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
 	"github.com/davidyusaku-13/prima_v2/config"
 	"github.com/davidyusaku-13/prima_v2/models"
+	"github.com/davidyusaku-13/prima_v2/utils"
 )
 
 func TestReminderScheduler_ProcessScheduledReminders(t *testing.T) {
@@ -264,8 +266,32 @@ func TestReminderScheduler_StartStop(t *testing.T) {
 	})
 }
 
-func TestReminderScheduler_FormatReminderMessage(t *testing.T) {
-	t.Run("formats message with disclaimer", func(t *testing.T) {
+func TestReminderScheduler_ProcessScheduledReminders_WithAttachments(t *testing.T) {
+	t.Run("sends reminder with article and video attachments", func(t *testing.T) {
+		// Track the message sent to GOWA
+		var sentMessage string
+		var mu sync.Mutex
+
+		// Create mock GOWA server that captures the message
+		gowaServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			var req struct {
+				Phone   string `json:"phone"`
+				Message string `json:"message"`
+			}
+			json.NewDecoder(r.Body).Decode(&req)
+
+			mu.Lock()
+			sentMessage = req.Message
+			mu.Unlock()
+
+			w.WriteHeader(http.StatusOK)
+			json.NewEncoder(w).Encode(SendMessageResponse{
+				Success:   true,
+				MessageID: "msg-with-attachments-123",
+			})
+		}))
+		defer gowaServer.Close()
+
 		logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelError}))
 		store := models.NewPatientStore(func() {})
 
@@ -277,29 +303,366 @@ func TestReminderScheduler_FormatReminderMessage(t *testing.T) {
 			},
 		}
 
-		scheduler := NewReminderScheduler(store, nil, cfg, logger)
+		gowaClient := NewGOWAClient(GOWAConfig{
+			Endpoint:         gowaServer.URL,
+			User:             "testuser",
+			Password:         "testpass",
+			Timeout:          10 * time.Second,
+			FailureThreshold: 5,
+			CooldownDuration: 5 * time.Minute,
+		}, logger)
 
-		// Use the correct method formatReminderMessageFromValues
-		message := scheduler.formatReminderMessageFromValues(
-			"Test Reminder",  // title
-			"Test description", // description
-			"John Doe",        // patientName
-		)
-
-		if message == "" {
-			t.Error("Expected non-empty message")
+		// Create mock article store
+		articleStore := &models.ArticleStore{
+			Articles: map[string]*models.Article{
+				"article-1": {
+					ID:      "article-1",
+					Title:   "Test Article",
+					Slug:    "test-article",
+					Excerpt: "This is a test article excerpt",
+				},
+			},
 		}
-		if !strings.Contains(message, "Halo John Doe") {
+
+		// Create mock video store
+		videoStore := &models.VideoStore{
+			Videos: map[string]*models.Video{
+				"video-1": {
+					ID:        "video-1",
+					Title:     "Test Video",
+					YouTubeID: "abc123xyz",
+				},
+			},
+		}
+
+		scheduler := NewReminderScheduler(store, gowaClient, cfg, logger)
+		scheduler.SetContentStores(articleStore, videoStore)
+
+		// Add patient with reminder that has attachments
+		dueTime := time.Now().UTC().Add(-1 * time.Minute) // Due 1 minute ago
+		store.Lock()
+		store.Patients["patient-1"] = &models.Patient{
+			ID:    "patient-1",
+			Name:  "John Doe",
+			Phone: "+6281234567890",
+			Reminders: []*models.Reminder{
+				{
+					ID:             "reminder-1",
+					Title:          "Test Reminder With Attachments",
+					Description:    "This is a test reminder",
+					DueDate:        dueTime.Format(time.RFC3339),
+					DeliveryStatus: models.DeliveryStatusPending,
+					Attachments: []models.Attachment{
+						{ID: "article-1", Type: "article", Title: "Test Article"},
+						{ID: "video-1", Type: "video", Title: "Test Video"},
+					},
+				},
+			},
+		}
+		store.Unlock()
+
+		// Process scheduled reminders
+		scheduler.processScheduledReminders()
+
+		// Wait a bit for async processing
+		time.Sleep(100 * time.Millisecond)
+
+		// Verify the message was sent with attachments
+		mu.Lock()
+		msg := sentMessage
+		mu.Unlock()
+
+		if msg == "" {
+			t.Fatal("Expected message to be sent")
+		}
+
+		// Check message contains patient name
+		if !strings.Contains(msg, "Halo John Doe") {
 			t.Error("Message should contain patient name")
 		}
-		if !strings.Contains(message, "*Test Reminder*") {
+
+		// Check message contains reminder title
+		if !strings.Contains(msg, "*Test Reminder With Attachments*") {
 			t.Error("Message should contain reminder title")
 		}
-		if !strings.Contains(message, "Test description") {
-			t.Error("Message should contain description")
+
+		// Check message contains article content
+		if !strings.Contains(msg, "📖 Test Article") {
+			t.Error("Message should contain article title with emoji")
 		}
-		if !strings.Contains(message, "Test health disclaimer") {
+		if !strings.Contains(msg, "This is a test article excerpt") {
+			t.Error("Message should contain article excerpt")
+		}
+		if !strings.Contains(msg, "https://prima.app/artikel/test-article") {
+			t.Error("Message should contain article URL")
+		}
+
+		// Check message contains video content
+		if !strings.Contains(msg, "🎬 Test Video") {
+			t.Error("Message should contain video title with emoji")
+		}
+		if !strings.Contains(msg, "https://youtube.com/watch?v=abc123xyz") {
+			t.Error("Message should contain YouTube URL")
+		}
+
+		// Check message contains disclaimer
+		if !strings.Contains(msg, "Test health disclaimer") {
 			t.Error("Message should contain disclaimer")
+		}
+	})
+
+	t.Run("sends reminder without attachments", func(t *testing.T) {
+		var sentMessage string
+		var mu sync.Mutex
+
+		gowaServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			var req struct {
+				Phone   string `json:"phone"`
+				Message string `json:"message"`
+			}
+			json.NewDecoder(r.Body).Decode(&req)
+
+			mu.Lock()
+			sentMessage = req.Message
+			mu.Unlock()
+
+			w.WriteHeader(http.StatusOK)
+			json.NewEncoder(w).Encode(SendMessageResponse{
+				Success:   true,
+				MessageID: "msg-no-attachments-123",
+			})
+		}))
+		defer gowaServer.Close()
+
+		logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelError}))
+		store := models.NewPatientStore(func() {})
+
+		enabled := true
+		cfg := &config.Config{
+			Disclaimer: config.DisclaimerConfig{
+				Text:    "Test disclaimer",
+				Enabled: &enabled,
+			},
+		}
+
+		gowaClient := NewGOWAClient(GOWAConfig{
+			Endpoint:         gowaServer.URL,
+			User:             "testuser",
+			Password:         "testpass",
+			Timeout:          10 * time.Second,
+			FailureThreshold: 5,
+			CooldownDuration: 5 * time.Minute,
+		}, logger)
+
+		scheduler := NewReminderScheduler(store, gowaClient, cfg, logger)
+
+		// Add patient with reminder without attachments
+		dueTime := time.Now().UTC().Add(-1 * time.Minute)
+		store.Lock()
+		store.Patients["patient-2"] = &models.Patient{
+			ID:    "patient-2",
+			Name:  "Jane Doe",
+			Phone: "+6281234567891",
+			Reminders: []*models.Reminder{
+				{
+					ID:             "reminder-2",
+					Title:          "Simple Reminder",
+					Description:    "No attachments here",
+					DueDate:        dueTime.Format(time.RFC3339),
+					DeliveryStatus: models.DeliveryStatusPending,
+					Attachments:    nil,
+				},
+			},
+		}
+		store.Unlock()
+
+		scheduler.processScheduledReminders()
+		time.Sleep(100 * time.Millisecond)
+
+		mu.Lock()
+		msg := sentMessage
+		mu.Unlock()
+
+		if msg == "" {
+			t.Fatal("Expected message to be sent")
+		}
+
+		// Check message contains basic content
+		if !strings.Contains(msg, "Halo Jane Doe") {
+			t.Error("Message should contain patient name")
+		}
+		if !strings.Contains(msg, "*Simple Reminder*") {
+			t.Error("Message should contain reminder title")
+		}
+
+		// Check message does NOT contain "Konten Edukasi" section
+		if strings.Contains(msg, "Konten Edukasi") {
+			t.Error("Message without attachments should not contain 'Konten Edukasi' section")
+		}
+	})
+
+	t.Run("handles missing content gracefully", func(t *testing.T) {
+		var sentMessage string
+		var mu sync.Mutex
+
+		gowaServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			var req struct {
+				Phone   string `json:"phone"`
+				Message string `json:"message"`
+			}
+			json.NewDecoder(r.Body).Decode(&req)
+
+			mu.Lock()
+			sentMessage = req.Message
+			mu.Unlock()
+
+			w.WriteHeader(http.StatusOK)
+			json.NewEncoder(w).Encode(SendMessageResponse{
+				Success:   true,
+				MessageID: "msg-missing-content-123",
+			})
+		}))
+		defer gowaServer.Close()
+
+		logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelError}))
+		store := models.NewPatientStore(func() {})
+
+		enabled := true
+		cfg := &config.Config{
+			Disclaimer: config.DisclaimerConfig{
+				Text:    "Test disclaimer",
+				Enabled: &enabled,
+			},
+		}
+
+		gowaClient := NewGOWAClient(GOWAConfig{
+			Endpoint:         gowaServer.URL,
+			User:             "testuser",
+			Password:         "testpass",
+			Timeout:          10 * time.Second,
+			FailureThreshold: 5,
+			CooldownDuration: 5 * time.Minute,
+		}, logger)
+
+		// Create empty content stores (content was deleted)
+		articleStore := &models.ArticleStore{
+			Articles: map[string]*models.Article{},
+		}
+		videoStore := &models.VideoStore{
+			Videos: map[string]*models.Video{},
+		}
+
+		scheduler := NewReminderScheduler(store, gowaClient, cfg, logger)
+		scheduler.SetContentStores(articleStore, videoStore)
+
+		// Add patient with reminder referencing deleted content
+		dueTime := time.Now().UTC().Add(-1 * time.Minute)
+		store.Lock()
+		store.Patients["patient-3"] = &models.Patient{
+			ID:    "patient-3",
+			Name:  "Bob Smith",
+			Phone: "+6281234567892",
+			Reminders: []*models.Reminder{
+				{
+					ID:             "reminder-3",
+					Title:          "Reminder With Deleted Content",
+					Description:    "Content was deleted",
+					DueDate:        dueTime.Format(time.RFC3339),
+					DeliveryStatus: models.DeliveryStatusPending,
+					Attachments: []models.Attachment{
+						{ID: "deleted-article", Type: "article", Title: "Deleted Article"},
+					},
+				},
+			},
+		}
+		store.Unlock()
+
+		scheduler.processScheduledReminders()
+		time.Sleep(100 * time.Millisecond)
+
+		mu.Lock()
+		msg := sentMessage
+		mu.Unlock()
+
+		if msg == "" {
+			t.Fatal("Expected message to be sent even with missing content")
+		}
+
+		// Check message contains fallback text for missing content
+		if !strings.Contains(msg, "Konten tidak tersedia") {
+			t.Error("Message should contain fallback text for missing content")
+		}
+	})
+}
+
+// TestBuildContentAttachments tests the shared utility function
+func TestBuildContentAttachments(t *testing.T) {
+	t.Run("builds attachments with article and video", func(t *testing.T) {
+		articleStore := &models.ArticleStore{
+			Articles: map[string]*models.Article{
+				"art-1": {
+					ID:      "art-1",
+					Title:   "Article One",
+					Slug:    "article-one",
+					Excerpt: "Article one excerpt",
+				},
+			},
+		}
+
+		videoStore := &models.VideoStore{
+			Videos: map[string]*models.Video{
+				"vid-1": {
+					ID:        "vid-1",
+					Title:     "Video One",
+					YouTubeID: "yt123",
+				},
+			},
+		}
+
+		attachments := []models.Attachment{
+			{ID: "vid-1", Type: "video", Title: "Video One"},
+			{ID: "art-1", Type: "article", Title: "Article One"},
+		}
+
+		result := utils.BuildContentAttachments(attachments, articleStore, videoStore)
+
+		if len(result) != 2 {
+			t.Fatalf("Expected 2 attachments, got %d", len(result))
+		}
+
+		// Articles should be sorted first
+		if result[0].Type != "article" {
+			t.Error("Articles should be sorted before videos")
+		}
+		if result[0].Excerpt != "Article one excerpt" {
+			t.Error("Article should have excerpt from store")
+		}
+		if result[0].URL != "https://prima.app/artikel/article-one" {
+			t.Errorf("Article URL incorrect: %s", result[0].URL)
+		}
+
+		if result[1].Type != "video" {
+			t.Error("Video should be second")
+		}
+		if result[1].URL != "https://youtube.com/watch?v=yt123" {
+			t.Errorf("Video URL incorrect: %s", result[1].URL)
+		}
+	})
+
+	t.Run("handles nil stores gracefully", func(t *testing.T) {
+		attachments := []models.Attachment{
+			{ID: "art-1", Type: "article", Title: "Article", URL: "https://fallback.url"},
+		}
+
+		result := utils.BuildContentAttachments(attachments, nil, nil)
+
+		if len(result) != 1 {
+			t.Fatalf("Expected 1 attachment, got %d", len(result))
+		}
+
+		// Should use fallback URL when stores are nil
+		if result[0].URL != "https://fallback.url" {
+			t.Errorf("Should use fallback URL, got: %s", result[0].URL)
 		}
 	})
 }
