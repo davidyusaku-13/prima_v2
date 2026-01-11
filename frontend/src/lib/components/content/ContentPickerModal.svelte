@@ -14,6 +14,14 @@
   const MAX_SELECTION = 3; // Maximum number of content items that can be attached to a reminder
   const MAX_RECENT = 5;
   const MAX_POPULAR = 5;
+  const BACKEND_URL = 'http://localhost:8080';
+
+  // Helper to get full image URL
+  function getFullImageUrl(path) {
+    if (!path) return '';
+    if (path.startsWith('http')) return path;
+    return BACKEND_URL + path;
+  }
 
   let {
     show = false,
@@ -157,7 +165,7 @@
 
   function getContentType(content) {
     // Determine type based on field presence
-    return content.YouTubeID ? "video" : "article";
+    return content.youtube_id ? "video" : "article";
   }
 
   // Load recent attachments from localStorage
@@ -193,7 +201,7 @@
       type,
       title: content.title,
       thumbnail:
-        type === "video" ? content.thumbnailURL : content.heroImages?.hero1x1,
+        type === "video" ? content.thumbnail_url : getFullImageUrl(content.hero_images?.hero_1x1),
       addedAt: Date.now(),
     };
 
@@ -280,10 +288,10 @@
       title: content.title,
       excerpt: content.excerpt || "",
       slug: content.slug || "",
-      youtubeId: content.YouTubeID || "",
+      youtubeId: content.youtube_id || "",
       url:
         type === "video"
-          ? `https://www.youtube.com/watch?v=${content.YouTubeID}`
+          ? `https://www.youtube.com/watch?v=${content.youtube_id}`
           : `/berita/${content.slug}`,
     };
 
@@ -657,7 +665,7 @@
                       >
                         {#if item.thumbnail}
                           <img
-                            src={item.thumbnail}
+                            src={getFullImageUrl(item.thumbnail)}
                             alt=""
                             class="w-full h-full object-cover"
                           />
@@ -725,7 +733,7 @@
                       >
                         {#if item.thumbnail}
                           <img
-                            src={item.thumbnail}
+                            src={getFullImageUrl(item.thumbnail)}
                             alt=""
                             class="w-full h-full object-cover"
                           />
@@ -812,7 +820,7 @@
                         >
                           {#if item.thumbnail}
                             <img
-                              src={item.thumbnail}
+                              src={getFullImageUrl(item.thumbnail)}
                               alt=""
                               class="w-full h-full object-cover"
                             />
@@ -888,9 +896,9 @@
                       <div
                         class="flex-shrink-0 w-16 h-16 bg-slate-100 rounded-lg overflow-hidden"
                       >
-                        {#if article.heroImages?.hero1x1}
+                        {#if article.hero_images?.hero_1x1}
                           <img
-                            src={article.heroImages.hero1x1}
+                            src={getFullImageUrl(article.hero_images.hero_1x1)}
                             alt=""
                             class="w-full h-full object-cover"
                           />
@@ -998,9 +1006,9 @@
                       <div
                         class="flex-shrink-0 w-24 h-16 bg-slate-100 rounded-lg overflow-hidden relative"
                       >
-                        {#if video.thumbnailURL}
+                        {#if video.thumbnail_url}
                           <img
-                            src={video.thumbnailURL}
+                            src={getFullImageUrl(video.thumbnail_url)}
                             alt=""
                             class="w-full h-full object-cover"
                           />
@@ -1048,9 +1056,9 @@
                         <h4 class="font-medium text-slate-900 truncate">
                           {video.title}
                         </h4>
-                        {#if video.channelName}
+                        {#if video.channel_name}
                           <p class="text-sm text-slate-500 mt-1">
-                            {video.channelName}
+                            {video.channel_name}
                           </p>
                         {/if}
                       </div>

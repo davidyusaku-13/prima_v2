@@ -5,6 +5,15 @@
   import { locale, t } from "svelte-i18n";
   import ContentDisclaimer from "./ContentDisclaimer.svelte";
 
+  const BACKEND_URL = 'http://localhost:8080';
+
+  // Helper to get full image URL
+  function getFullImageUrl(path) {
+    if (!path) return '';
+    if (path.startsWith('http')) return path;
+    return BACKEND_URL + path;
+  }
+
   let {
     content = null,
     isSelected = false,
@@ -23,7 +32,7 @@
   });
 
   // Determine content type
-  let contentType = $derived(content?.YouTubeID ? "video" : "article");
+  let contentType = $derived(content?.youtube_id ? "video" : "article");
 
   // Truncate excerpt to 200 characters
   let truncatedExcerpt = $derived.by(() => {
@@ -149,10 +158,10 @@
       {#if contentType === "article"}
         <div class="flex flex-col">
           <!-- Hero Image -->
-          {#if content.heroImages?.hero16x9 && !imageError}
+          {#if content.hero_images?.hero_16x9 && !imageError}
             <div class="w-full h-48 bg-slate-100 overflow-hidden">
               <img
-                src={content.heroImages.hero16x9}
+                src={getFullImageUrl(content.hero_images.hero_16x9)}
                 alt={content.title}
                 class="w-full h-full object-cover"
                 onerror={() => (imageError = true)}
@@ -291,9 +300,9 @@
         <div class="flex flex-col">
           <!-- Thumbnail -->
           <div class="w-full h-48 bg-slate-100 relative overflow-hidden">
-            {#if content.thumbnailURL && !imageError}
+            {#if content.thumbnail_url && !imageError}
               <img
-                src={content.thumbnailURL}
+                src={content.thumbnail_url}
                 alt={content.title}
                 class="w-full h-full object-cover"
                 onerror={() => (imageError = true)}
@@ -394,7 +403,7 @@
 
             <!-- Attribution Section -->
             <div class="flex flex-wrap gap-3 text-xs text-slate-500 mb-3">
-              {#if content.channelName}
+              {#if content.channel_name}
                 <span
                   class="flex items-center gap-1"
                   aria-label={$t("content.attribution.channel")}
@@ -412,7 +421,7 @@
                       d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
                     />
                   </svg>
-                  {content.channelName}
+                  {content.channel_name}
                 </span>
               {/if}
               {#if formattedDate}

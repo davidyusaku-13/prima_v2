@@ -28,10 +28,6 @@
     loadVideos();
   }
 
-  function getCategoryLabel(category) {
-    return $t(`videoCategories.${category}`);
-  }
-
   function getCategoryColor(category, isSelected) {
     const base = 'px-4 py-2 rounded-full text-sm font-medium transition-all duration-200';
     if (isSelected) {
@@ -92,7 +88,7 @@
         onclick={() => selectCategory(category)}
         class={getCategoryColor(category, selectedCategory === category)}
       >
-        {getCategoryLabel(category)}
+        {$t(`videoCategories.${category}`)}
       </button>
     {/each}
   </div>

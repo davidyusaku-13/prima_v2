@@ -457,9 +457,14 @@
       "videos": "Videos",
       "attach": "Attach",
       "noResults": "No results found for \"{query}\"",
+      "noResultsGuidance": "Try different keywords or browse categories",
       "empty": "No educational content available",
+      "popularContent": "Popular Content",
+      "recentAttachments": "Recent Attachments",
       "selected": "{n} selected",
-      "clearAll": "Clear all"
+      "clearAll": "Clear all",
+      "recentLabel": "Recent",
+      "popularLabel": "Popular"
     },
     "attachment": {
       "count": {

@@ -28,10 +28,6 @@
     loadArticles();
   }
 
-  function getCategoryLabel(category) {
-    return $t(`articleCategories.${category}`);
-  }
-
   function getCategoryColor(category, isSelected) {
     const base = 'px-4 py-2 rounded-full text-sm font-medium transition-all duration-200';
     if (isSelected) {
@@ -91,7 +87,7 @@
         onclick={() => selectCategory(category)}
         class={getCategoryColor(category, selectedCategory === category)}
       >
-        {getCategoryLabel(category)}
+        {$t(`articleCategories.${category}`)}
       </button>
     {/each}
   </div>
