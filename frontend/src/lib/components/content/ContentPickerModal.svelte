@@ -5,7 +5,6 @@
     fetchAllContent,
     fetchCategories,
     fetchPopularContent,
-    incrementAttachmentCount,
   } from "$lib/utils/api.js";
   import ContentPreviewPanel from "./ContentPreviewPanel.svelte";
   import EmptyState from "../ui/EmptyState.svelte";
@@ -306,10 +305,6 @@
       onSelect([...selectedContent, attachment]);
       // Add to recent attachments
       addToRecentAttachments(content);
-      // Increment attachment count on backend (fire and forget)
-      incrementAttachmentCount(type, content.id).catch((e) => {
-        console.error("Failed to increment attachment count:", e);
-      });
     }
   }
 

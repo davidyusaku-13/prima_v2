@@ -3,6 +3,38 @@
     "id": "20251230141252-a2aiaeea",
     "name": "David Yusaku",
     "phone": "6281333852187",
+    "reminders": [
+      {
+        "id": "20260112000246-uai6qqee",
+        "title": "Coba V2",
+        "description": "Tes aja sih",
+        "dueDate": "2026-01-12T00:05",
+        "priority": "medium",
+        "completed": true,
+        "recurrence": {
+          "frequency": "none",
+          "interval": 1,
+          "daysOfWeek": []
+        },
+        "notified": false,
+        "attachments": [
+          {
+            "type": "article",
+            "id": "20251231160230-9abcdefg",
+            "title": "Artikel #1",
+            "url": "/berita/artikel-1"
+          },
+          {
+            "type": "video",
+            "id": "20251231160313-stuvwxyz",
+            "title": "Clips that made Dima FAMOUS...",
+            "url": "https://www.youtube.com/watch?v=jy_Jm-MU4aw"
+          }
+        ],
+        "delivery_status": "sent",
+        "message_sent_at": "2026-01-11T17:05:42Z"
+      }
+    ],
     "createdBy": "superadmin"
   },
   "20260108161657-6iiqaqi2": {

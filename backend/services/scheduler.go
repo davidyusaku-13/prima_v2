@@ -379,6 +379,7 @@ func (s *ReminderScheduler) sendScheduledReminder(patientID string, patient *mod
 		currentReminder.MessageSentAt = sentAt.Format(time.RFC3339)
 		currentReminder.DeliveryErrorMessage = ""
 		currentReminder.ScheduledDeliveryAt = "" // Clear scheduled time
+		currentReminder.Completed = true // Mark as completed when successfully sent
 
 		// Broadcast SSE event for real-time UI updates (before unlock)
 		if s.sseHandler != nil {
@@ -522,6 +523,7 @@ func (s *ReminderScheduler) processRetryReminder(patientID string, patient *mode
 		currentReminder.DeliveryErrorMessage = ""
 		currentReminder.ScheduledDeliveryAt = ""
 		currentReminder.RetryCount = 0
+		currentReminder.Completed = true // Mark as completed when successfully sent
 
 		// Broadcast SSE event for real-time UI updates (before unlock)
 		if s.sseHandler != nil {

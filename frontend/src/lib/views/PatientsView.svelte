@@ -9,6 +9,7 @@
 
   let {
     patients = [],
+    token = "",
     onOpenPatientModal = () => {},
     onOpenReminderModal = () => {},
     onDeletePatient = () => {},
@@ -91,6 +92,16 @@
   // Initialize SSE connection on mount
   onMount(() => {
     deliveryStore.connect();
+
+    // Hydrate delivery store with existing delivery statuses from backend data
+    // This ensures filter counts are accurate on page load
+    patients.forEach(p => {
+      p.reminders?.forEach(r => {
+        if (r.delivery_status) {
+          deliveryStore.updateStatus(r.id, r.delivery_status, r.message_sent_at || new Date().toISOString());
+        }
+      });
+    });
 
     // Listen for navigate-to-patient event from toast action
     const handleNavigateToPatient = (event) => {
@@ -363,6 +374,7 @@
       <div class="h-full overflow-hidden bg-white lg:bg-slate-50">
         <PatientDetailPane
           patient={selectedPatient}
+          {token}
           {deliveryStatuses}
           {failedReminders}
           {activeTab}

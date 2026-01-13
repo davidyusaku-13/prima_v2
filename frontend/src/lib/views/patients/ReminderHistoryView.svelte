@@ -187,16 +187,8 @@
   }
 </script>
 
-<div class="space-y-4">
-  <!-- Header -->
-  <div class="flex items-center justify-between mb-4">
-    <h3 class="text-lg font-semibold text-slate-900">{$t('patients.reminderHistory') || 'Riwayat Reminder'}</h3>
-    {#if patient}
-      <span class="text-sm text-slate-500">
-        {patient.name} • {patient.phone}
-      </span>
-    {/if}
-  </div>
+<div class="space-y-4 px-4 pt-2">
+  <!-- Reminder List -->
 
   <!-- Loading state -->
   {#if loading}

@@ -32,6 +32,16 @@
   onMount(() => {
     deliveryStore.connect();
 
+    // Hydrate delivery store with existing delivery statuses from backend data
+    // This ensures filter counts are accurate on page load
+    patients.forEach(p => {
+      p.reminders?.forEach(r => {
+        if (r.delivery_status) {
+          deliveryStore.updateStatus(r.id, r.delivery_status, r.message_sent_at || new Date().toISOString());
+        }
+      });
+    });
+
     return () => {
       deliveryStore.disconnect();
     };
@@ -111,10 +121,10 @@
     pendingReminders: patients.reduce((acc, p) => acc + (p.reminders?.filter(r => !r.completed).length || 0), 0)
   });
 
-  // Get all reminders from all patients
+  // Get all reminders from all patients (regardless of completion status)
   let allReminders = $derived(() => {
     return patients.flatMap(p =>
-      (p.reminders || []).filter(r => !r.completed && r.dueDate)
+      (p.reminders || []).filter(r => r.dueDate)
         .map(r => ({ ...r, patientName: p.name, patientId: p.id }))
     ).sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate));
   });

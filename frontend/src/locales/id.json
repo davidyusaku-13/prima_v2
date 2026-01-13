@@ -71,8 +71,8 @@
     "totalReminders": "Total Pengingat",
     "completed": "Selesai",
     "pending": "Tertunda",
-    "upcomingReminders": "Pengingat Mendatang",
-    "noUpcomingReminders": "Tidak ada pengingat mendatang",
+    "upcomingReminders": "Pengingat",
+    "noUpcomingReminders": "Tidak ada pengingat",
     "recentPatients": "Pasien Terbaru",
     "noPatients": "Belum ada pasien",
     "viewAllPatients": "Lihat semua pasien"

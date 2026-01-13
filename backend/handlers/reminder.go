@@ -551,6 +551,7 @@ func (h *ReminderHandler) Send(c *gin.Context) {
 	reminder.GOWAMessageID = response.MessageID
 	reminder.MessageSentAt = sentAt.Format(time.RFC3339)
 	reminder.DeliveryErrorMessage = ""
+	reminder.Completed = true // Mark as completed when successfully sent
 	h.store.Unlock()
 	h.store.SaveData()
 
@@ -570,6 +571,13 @@ func (h *ReminderHandler) Send(c *gin.Context) {
 			"phone", utils.MaskPhone(whatsappPhone),
 			"gowa_message_id", response.MessageID,
 		)
+	}
+
+	// Increment attachment counts for analytics
+	if h.contentStore != nil && len(reminder.Attachments) > 0 {
+		for _, att := range reminder.Attachments {
+			h.contentStore.IncrementAttachmentCountInternal(att.Type, att.ID)
+		}
 	}
 
 	c.JSON(http.StatusOK, gin.H{
@@ -811,6 +819,7 @@ func (h *ReminderHandler) RetryReminder(c *gin.Context) {
 	reminder.MessageSentAt = sentAt.Format(time.RFC3339)
 	reminder.DeliveryErrorMessage = ""
 	reminder.RetryCount = 0 // Reset retry count on manual retry
+	reminder.Completed = true // Mark as completed when successfully sent
 	h.store.Unlock()
 	h.store.SaveData()
 

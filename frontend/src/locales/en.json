@@ -71,8 +71,8 @@
     "totalReminders": "Total Reminders",
     "completed": "Completed",
     "pending": "Pending",
-    "upcomingReminders": "Upcoming Reminders",
-    "noUpcomingReminders": "No upcoming reminders",
+    "upcomingReminders": "Reminders",
+    "noUpcomingReminders": "No reminders",
     "recentPatients": "Recent Patients",
     "noPatients": "No patients yet",
     "viewAllPatients": "View all patients"

@@ -390,6 +390,19 @@ export async function getContentAnalytics(token) {
   return data.data;
 }
 
+// Analytics - Sync Content Attachment Counts from reminder history
+export async function syncContentAttachmentCounts(token) {
+  const res = await fetch(`${API_URL}/analytics/content/sync`, {
+    method: 'POST',
+    headers: getHeaders(token)
+  });
+  if (!res.ok) {
+    const data = await res.json();
+    throw new Error(data.error || 'Failed to sync attachment counts');
+  }
+  return res.json();
+}
+
 // Analytics - Delivery Statistics
 export async function getDeliveryAnalytics(token, period = 'all') {
   const res = await fetch(`${API_URL}/analytics/delivery?period=${period}`, {

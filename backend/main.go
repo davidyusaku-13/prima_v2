@@ -433,6 +433,9 @@ func main() {
 
 		// Analytics - Content attachment statistics
 		api.GET("/analytics/content", requireRole(RoleAdmin, RoleSuperadmin), contentStore.GetContentAnalytics)
+		api.POST("/analytics/content/sync", requireRole(RoleAdmin, RoleSuperadmin), func(c *gin.Context) {
+			contentStore.SyncAttachmentCounts(c, patientStore)
+		})
 
 		// Analytics - Delivery statistics
 		api.GET("/analytics/delivery", requireRole(RoleAdmin, RoleSuperadmin), analyticsHandler.GetDeliveryAnalytics)

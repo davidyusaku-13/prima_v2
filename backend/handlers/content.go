@@ -1041,6 +1041,104 @@ func (cs *ContentStore) IncrementAttachmentCount(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "attachment count incremented"})
 }
 
+// IncrementAttachmentCountInternal increments attachment count for a content item
+// This is called internally (e.g., from ReminderHandler) without HTTP context
+func (cs *ContentStore) IncrementAttachmentCountInternal(contentType, contentID string) {
+	if contentType != "article" && contentType != "video" {
+		return
+	}
+
+	if contentType == "article" {
+		cs.Articles.Mu.Lock()
+		if art, ok := cs.Articles.Articles[contentID]; ok {
+			art.AttachmentCount++
+		}
+		cs.Articles.Mu.Unlock()
+		cs.saveArticles()
+	} else {
+		cs.Videos.Mu.Lock()
+		if vid, ok := cs.Videos.Videos[contentID]; ok {
+			vid.AttachmentCount++
+		}
+		cs.Videos.Mu.Unlock()
+		cs.saveVideos()
+	}
+}
+
+// SyncAttachmentCounts recalculates attachment counts from existing reminder data
+// This is an admin-only endpoint to fix historical data
+func (cs *ContentStore) SyncAttachmentCounts(c *gin.Context, patientStore *models.PatientStore) {
+	// Check admin role
+	role := c.GetString("role")
+	if role != "admin" && role != "superadmin" {
+		c.JSON(http.StatusForbidden, gin.H{"error": "admin access required"})
+		return
+	}
+
+	// Reset all counts to 0
+	cs.Articles.Mu.Lock()
+	for _, art := range cs.Articles.Articles {
+		art.AttachmentCount = 0
+	}
+	cs.Articles.Mu.Unlock()
+
+	cs.Videos.Mu.Lock()
+	for _, vid := range cs.Videos.Videos {
+		vid.AttachmentCount = 0
+	}
+	cs.Videos.Mu.Unlock()
+
+	// Count attachments from sent reminders
+	articleCounts := make(map[string]int)
+	videoCounts := make(map[string]int)
+
+	patientStore.Mu.RLock()
+	for _, patient := range patientStore.Patients {
+		for _, reminder := range patient.Reminders {
+			// Only count sent, delivered, or read reminders
+			status := string(reminder.DeliveryStatus)
+			if status != "sent" && status != "delivered" && status != "read" {
+				continue
+			}
+			for _, att := range reminder.Attachments {
+				if att.Type == "article" {
+					articleCounts[att.ID]++
+				} else if att.Type == "video" {
+					videoCounts[att.ID]++
+				}
+			}
+		}
+	}
+	patientStore.Mu.RUnlock()
+
+	// Apply counts
+	cs.Articles.Mu.Lock()
+	for id, count := range articleCounts {
+		if art, ok := cs.Articles.Articles[id]; ok {
+			art.AttachmentCount = count
+		}
+	}
+	cs.Articles.Mu.Unlock()
+
+	cs.Videos.Mu.Lock()
+	for id, count := range videoCounts {
+		if vid, ok := cs.Videos.Videos[id]; ok {
+			vid.AttachmentCount = count
+		}
+	}
+	cs.Videos.Mu.Unlock()
+
+	// Save
+	cs.saveArticles()
+	cs.saveVideos()
+
+	c.JSON(http.StatusOK, gin.H{
+		"message":       "Attachment counts synced successfully",
+		"articlesSynced": len(articleCounts),
+		"videosSynced":   len(videoCounts),
+	})
+}
+
 // ContentAnalyticsItem represents a content item with attachment statistics
 type ContentAnalyticsItem struct {
 	ID              string `json:"id"`

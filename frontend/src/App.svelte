@@ -690,6 +690,7 @@
       {:else if currentView === 'patients'}
         <PatientsView
           {patients}
+          {token}
           bind:searchQuery
           onOpenPatientModal={openPatientModal}
           onOpenReminderModal={openReminderModal}
