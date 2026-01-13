@@ -14,6 +14,15 @@
   // Reactive delivery status from store (Svelte 5 runes)
   let deliveryStatuses = $derived(deliveryStore.deliveryStatuses);
 
+  // Sort patients by updated_at DESC (most recent first) - defensive frontend sorting
+  let sortedPatients = $derived(() => {
+    return [...patients].sort((a, b) => {
+      const dateA = a.updated_at ? new Date(a.updated_at) : new Date(0);
+      const dateB = b.updated_at ? new Date(b.updated_at) : new Date(0);
+      return dateB - dateA; // DESC
+    });
+  });
+
   // Filter state with session persistence (independent from PatientsView)
   let selectedFilter = $state(
     typeof window !== 'undefined'
@@ -304,7 +313,7 @@
       {#if patients.length === 0}
         <p class="text-slate-500 text-center py-4 sm:py-6 lg:py-8 text-sm">{$t('dashboard.noPatients')}</p>
       {:else}
-        {#each patients.slice(0, 5) as patient}
+        {#each sortedPatients().slice(0, 5) as patient}
           <div class="flex items-center gap-2 sm:gap-3 p-2 sm:p-3 lg:p-4 rounded-lg lg:rounded-xl bg-slate-50 hover:bg-slate-100 transition-colors duration-200">
             <div class="w-8 h-8 sm:w-10 sm:h-10 lg:w-12 lg:h-12 bg-teal-600 rounded-full flex items-center justify-center text-white font-semibold text-sm sm:text-lg lg:text-xl flex-shrink-0">
               {patient.name.charAt(0).toUpperCase()}

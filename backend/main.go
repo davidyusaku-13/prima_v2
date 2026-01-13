@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"sort"
 	"strings"
 	"sync"
 	"syscall"
@@ -921,6 +922,33 @@ func checkReminders() {
 	}
 }
 
+// Timestamp helper functions
+func getCurrentTimestamp() string {
+	return time.Now().UTC().Format(time.RFC3339)
+}
+
+func ensureTimestamps(patient *models.Patient) {
+	now := getCurrentTimestamp()
+	if patient.CreatedAt == "" {
+		patient.CreatedAt = now
+	}
+	if patient.UpdatedAt == "" {
+		patient.UpdatedAt = now
+	}
+}
+
+func migratePatientTimestamps(patients []*models.Patient) {
+	now := getCurrentTimestamp()
+	for i := range patients {
+		if patients[i].CreatedAt == "" {
+			patients[i].CreatedAt = now
+		}
+		if patients[i].UpdatedAt == "" {
+			patients[i].UpdatedAt = now
+		}
+	}
+}
+
 // Patient handlers
 func getPatients(c *gin.Context) {
 	userID := c.GetString("userID")
@@ -940,6 +968,22 @@ func getPatients(c *gin.Context) {
 		}
 	}
 	store.mu.RUnlock()
+
+	// Migrate timestamps for existing data
+	migratePatientTimestamps(patients)
+
+	// Sort by updated_at DESC (most recent first)
+	sort.Slice(patients, func(i, j int) bool {
+		timeI, errI := time.Parse(time.RFC3339, patients[i].UpdatedAt)
+		timeJ, errJ := time.Parse(time.RFC3339, patients[j].UpdatedAt)
+
+		if errI != nil || errJ != nil {
+			return false // Keep original order on parse error
+		}
+
+		return timeI.After(timeJ) // DESC order
+	})
+
 	c.JSON(http.StatusOK, gin.H{"patients": patients})
 }
 
@@ -974,6 +1018,8 @@ func createPatient(c *gin.Context) {
 		Notes:     req.Notes,
 		Reminders: make([]*models.Reminder, 0),
 		CreatedBy: userID,
+		CreatedAt: getCurrentTimestamp(),
+		UpdatedAt: getCurrentTimestamp(),
 	}
 	store.patients[patient.ID] = patient
 	store.mu.Unlock()
@@ -1047,6 +1093,7 @@ func updatePatient(c *gin.Context) {
 		patient.Email = req.Email
 	}
 	patient.Notes = req.Notes
+	patient.UpdatedAt = getCurrentTimestamp()
 	store.mu.Unlock()
 
 	saveData()

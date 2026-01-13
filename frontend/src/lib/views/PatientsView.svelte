@@ -89,6 +89,13 @@
     )
   );
 
+  // Sort patients alphabetically by name
+  let sortedPatients = $derived(() => {
+    return [...filteredPatients].sort((a, b) => {
+      return a.name.localeCompare(b.name);
+    });
+  });
+
   // Initialize SSE connection on mount
   onMount(() => {
     deliveryStore.connect();
@@ -316,7 +323,7 @@
         : 'block'}"
     >
       <PatientListPane
-        patients={filteredPatients}
+        patients={sortedPatients()}
         {selectedPatientId}
         {searchQuery}
         onSelect={handleSelectPatient}

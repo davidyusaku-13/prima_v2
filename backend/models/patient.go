@@ -80,6 +80,8 @@ type Patient struct {
 	Notes     string      `json:"notes,omitempty"`
 	Reminders []*Reminder `json:"reminders,omitempty"`
 	CreatedBy string      `json:"createdBy,omitempty"`
+	CreatedAt string      `json:"created_at"`
+	UpdatedAt string      `json:"updated_at"`
 }
 
 // PatientStore handles patient data persistence with thread-safe operations

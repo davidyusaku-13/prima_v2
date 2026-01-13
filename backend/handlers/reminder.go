@@ -17,6 +17,11 @@ import (
 	"github.com/davidyusaku-13/prima_v2/utils"
 )
 
+// getCurrentTimestamp returns the current UTC timestamp in RFC3339 format
+func getCurrentTimestamp() string {
+	return time.Now().UTC().Format(time.RFC3339)
+}
+
 // Role constants
 const (
 	RoleVolunteer = "volunteer"
@@ -175,6 +180,7 @@ func (h *ReminderHandler) Create(c *gin.Context) {
 		DeliveryStatus: models.DeliveryStatusPending,
 	}
 	patient.Reminders = append(patient.Reminders, reminder)
+	patient.UpdatedAt = getCurrentTimestamp()
 	h.store.Unlock()
 
 	h.store.SaveData()
@@ -253,6 +259,7 @@ func (h *ReminderHandler) Update(c *gin.Context) {
 			if req.DueDate != "" && req.DueDate != r.DueDate {
 				r.Notified = false
 			}
+			patient.UpdatedAt = getCurrentTimestamp()
 			h.store.Unlock()
 			h.store.SaveData()
 
@@ -300,6 +307,7 @@ func (h *ReminderHandler) Toggle(c *gin.Context) {
 			if !r.Completed {
 				r.Notified = false
 			}
+			patient.UpdatedAt = getCurrentTimestamp()
 			h.store.Unlock()
 			h.store.SaveData()
 
@@ -344,6 +352,7 @@ func (h *ReminderHandler) Delete(c *gin.Context) {
 	for i, r := range patient.Reminders {
 		if r.ID == reminderID {
 			patient.Reminders = append(patient.Reminders[:i], patient.Reminders[i+1:]...)
+			patient.UpdatedAt = getCurrentTimestamp()
 			h.store.Unlock()
 			h.store.SaveData()
 
