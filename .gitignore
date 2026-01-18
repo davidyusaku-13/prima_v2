@@ -11,9 +11,7 @@ backend/config.yaml
 backend/*.exe
 node_modules
 CLAUDE.md
-AGENTS.md
 GOWA-README.md
 QUILL.md
 tmp.log
-bun-test.md
 opencode.jsonc
